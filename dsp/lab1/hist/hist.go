@@ -28,7 +28,7 @@ func CalcHistogramComponents(path, filename string) error {
 	}
 	defer file.Close()
 
-	getImageSize(file)
+	//getImageSize(file)
 
 	m, _, err := image.Decode(file)
 	if err != nil {

@@ -1,26 +1,35 @@
 package main
 
 import (
-	"labs/dsp/lab1/hist"
-	"log"
+	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/gamma"
+	"github.com/anthonynsimon/bild/imgio"
+	"image/jpeg"
+
 	"os"
 )
+
+
+
+
 
 func main() {
 	curDir, _ := os.Getwd()
 	path := curDir+"/dsp/lab1/images/"
 
-	go func(){
-		err := hist.DrawHistogram(path, "1.jpg")
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	err := hist.CalcHistogramComponents(path, "1.jpg")
+	img, err := imgio.Open(path+"1.jpg")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
+
+	res := gamma.AddGamma(img, 0.2, 0.22)
+
+	f, _ := os.Create(path + "1_gamma.jpg")
+
+	err = jpeg.Encode(f, res, &jpeg.Options{Quality: 99})
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 
