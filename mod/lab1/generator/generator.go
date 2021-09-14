@@ -77,6 +77,18 @@ func getMinMax(arr []float64) (min float64, max float64) {
 	return min, max
 }
 
+func calcIntervalLength(arr []float64, min, max float64) float64 {
+	k := 0
+
+	for _, v := range arr {
+		if v >= min && v <= max {
+			k++
+		}
+	}
+
+	return (max - min) / float64(k)
+}
+
 func BuildHistogram() {
 
 }
