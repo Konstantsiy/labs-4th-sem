@@ -1,16 +1,11 @@
 package main
 
 import (
-	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/gamma"
+	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/filter"
 	"github.com/anthonynsimon/bild/imgio"
 	"image/jpeg"
-
 	"os"
 )
-
-
-
-
 
 func main() {
 	curDir, _ := os.Getwd()
@@ -21,9 +16,9 @@ func main() {
 		panic(err)
 	}
 
-	res := gamma.AddGamma(img, 0.2, 0.22)
+	res := filter.ApplySobelFilter(img)
 
-	f, _ := os.Create(path + "1_gamma.jpg")
+	f, _ := os.Create(path + "1_sobel.jpg")
 
 	err = jpeg.Encode(f, res, &jpeg.Options{Quality: 99})
 	if err != nil {
