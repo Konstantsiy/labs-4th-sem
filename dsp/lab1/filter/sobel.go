@@ -40,7 +40,7 @@ func getGrayPixel(c color.Color) uint8 {
 	return ret
 }
 
-func ApplySobelFilter(img image.Image) image.Image {
+func ApplySobel(img image.Image) image.Image {
 	img = toGrayscale(img)
 	bounds := img.Bounds()
 	var pixel color.Color

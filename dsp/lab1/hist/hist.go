@@ -3,8 +3,6 @@ package hist
 import (
 	"fmt"
 	"github.com/anthonynsimon/bild/histogram"
-	"github.com/anthonynsimon/bild/imgio"
-	"github.com/google/uuid"
 	"image"
 	"image/jpeg"
 	"log"
@@ -55,18 +53,11 @@ func CalcHistogramComponents(path, filename string) error {
 	return nil
 }
 
-func DrawHistogram(path, filename string) error {
-	img, err := imgio.Open(path+filename)
-	if err != nil {
-		return err
-	}
-
+func DrawHistogram(img image.Image, path, filename, postfix string) error {
 	hist := histogram.NewRGBAHistogram(img)
 	result := hist.Image()
 
-	version := uuid.New().String()[0:4]
-
-	f, err := os.Create(path+ filename[0:len(filename)-4]+"_"+version+filename[len(filename)-4:])
+	f, err := os.Create(path+ filename[0:len(filename)-4]+"_"+postfix+"_hist"+filename[len(filename)-4:])
 	if err != nil {
 		return err
 	}
