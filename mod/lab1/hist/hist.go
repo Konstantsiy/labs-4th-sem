@@ -1,6 +1,7 @@
 package hist
 
 import (
+	"fmt"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
@@ -10,6 +11,7 @@ import (
 func DrawHistogram(values plotter.Values) error {
 	p := plot.New()
 	p.Title.Text = "histogram plot"
+	fmt.Println("count of values: ", len(values))
 	hist, err := plotter.NewHist(values, 20)
 	if err != nil {
 		return err
