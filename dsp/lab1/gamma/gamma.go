@@ -38,7 +38,7 @@ func AddGamma(img image.Image, c, y float64) *image.RGBA {
 	filler := make([]uint8, 256)
 
 	for i := 0; i < 256; i++ {
-		filler[i] = clamp(c + math.Pow(float64(i) / 255, y) * 255.0)
+		filler[i] = clamp(c * math.Pow(float64(i) / 255, y) * 255.0)
 	}
 
 	bounds := img.Bounds()

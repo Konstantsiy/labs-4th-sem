@@ -19,25 +19,12 @@ func getImageSize(r *os.File) {
 	fmt.Printf("filename: %s\twidht: %d\theight: %d\n", r.Name(), im.Width, im.Height)
 }
 
-func CalcHistogramComponents(path, filename string) error {
-	file, err := os.Open(path+filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	//getImageSize(file)
-
-	m, _, err := image.Decode(file)
-	if err != nil {
-		return err
-	}
-
-	bounds := m.Bounds()
+func CalcHistogramComponents(img image.Image) error {
+	bounds := img.Bounds()
 	var hist [16][4]int
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
-			r, g, b, a := m.At(x, y).RGBA()
+			r, g, b, a := img.At(x, y).RGBA()
 			hist[r>>12][0]++
 			hist[g>>12][1]++
 			hist[b>>12][2]++

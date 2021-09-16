@@ -12,35 +12,37 @@ import (
 	"strconv"
 )
 
-func prepareVars() (float64, float64, error) {
+func prepareVars() (string, float64, float64, error) {
 	args := os.Args
 
-	if len(args) < 3 {
-		return 0, 0, fmt.Errorf("need minimum 3 arguments")
+	if len(args) < 4 {
+		return "", 0, 0, fmt.Errorf("need minimum 4 arguments")
 	}
 
-	c, err := strconv.ParseFloat(args[1], 64)
+	filename := args[1]
+
+	c, err := strconv.ParseFloat(args[2], 64)
 	if err != nil {
-		return 0, 0, err
+		return "", 0, 0, err
 	}
 
-	y, err := strconv.ParseFloat(args[2], 64)
+	y, err := strconv.ParseFloat(args[3], 64)
 	if err != nil {
-		return 0, 0, err
+		return "", 0, 0, err
 	}
 
-	return c, y, nil
+	return filename, c, y, nil
 }
 
 func main() {
-	c, y, err := prepareVars()
+	filename, c, y, err := prepareVars()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	curDir, _ := os.Getwd()
 	path := curDir+"/dsp/lab1/images/"
-	filename := "1.jpg"
+	filename += ".jpg"
 
 
 	img, err := imgio.Open(path+filename)
