@@ -9,18 +9,18 @@ import (
 var (
 	kernelX = [3][3]int8{
 		{1, 0, -1},
-		{2, 0, -2},
+		{1, 0, -1},
 		{1, 0, -1},
 	}
 
 	kernelY = [3][3]int8{
-		{-1, -2, -1},
+		{-1, -1, -1},
 		{0, 0, 0},
-		{1, 2, 1},
+		{1, 1, 1},
 	}
 )
 
-func toGrayscale(img image.Image) image.Image {
+func ToGrayscale(img image.Image) image.Image {
 	max := img.Bounds().Max
 	min := img.Bounds().Min
 
@@ -43,7 +43,7 @@ func getGrayPixel(c color.Color) uint8 {
 }
 
 func ApplySobel(img image.Image) image.Image {
-	img = toGrayscale(img)
+	img = ToGrayscale(img)
 	bounds := img.Bounds()
 
 	var pixel color.Color
@@ -51,14 +51,40 @@ func ApplySobel(img image.Image) image.Image {
 
 	for x := 1; x < bounds.Max.X - 1; x++ {
 		for y := 1; y < bounds.Max.Y - 1; y++ {
-			fX, fY := applyKernels(img, x, y)
-			v := uint32(math.Ceil(math.Sqrt(float64((fX * fX) + (fY * fY)))))
+
+			//-----------------------------
+			var fX, fY int
+			curX, curY := x - 1, y - 1
+			for i := 0; i < 3; i++ {
+				for j := 0; j < 3; j++ {
+					pixel := getGrayPixel(img.At(curX, curY))
+					fX += int(kernelX[i][j]) * int(pixel)
+					fY += int(kernelY[i][j]) * int(pixel)
+					if x > 1 {
+						curX = curX + j - 1
+					}
+				}
+				curY++
+			}
+			//-----------------------------
+
+			//fX, fY := applyKernels(img, x, y)
+
+			v := uint32(math.Ceil(float64(getMax(fX, fY))))
+			//v := uint32(math.Ceil(math.Sqrt(float64((fX * fX) + (fY * fY)))))
 			pixel = color.Gray{Y: uint8(v)}
 			filtered.SetGray(x, y, pixel.(color.Gray))
 		}
 	}
 
 	return filtered
+}
+
+func getMax(f1, f2 int) int {
+	if f1 > f2 {
+		return f1
+	}
+	return f2
 }
 
 func applyKernels(img image.Image, x, y int) (uint32, uint32) {
@@ -85,7 +111,7 @@ func applyKernels(img image.Image, x, y int) (uint32, uint32) {
 
 
 func ApplySobel1(img image.Image) image.Image {
-	greyImg := toGrayscale(img)
+	greyImg := ToGrayscale(img)
 	bounds := greyImg.Bounds()
 	var filtered = image.NewGray(image.Rect(bounds.Max.X-2, bounds.Max.Y-2, bounds.Min.X, bounds.Min.Y))
 
