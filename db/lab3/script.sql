@@ -7,27 +7,43 @@ select 'create database postgres'
 create schema if not exists cinema;
 
 do $$
-begin
+    begin
         if not exists(select 1 from pg_extension where extname = 'uuid-ossp') then
             create extension "uuid-ossp";
-end if;
-end
+        end if;
+    end
 $$;
 
 do $$
-begin
+    begin
         if not exists(select 1 from pg_type where typname = 'hall_sector') then
-            create type hall_sector as enum ('near the screen', 'center', 'balcony');
-end if;
-end
+            create type hall_sector as enum ('near the center', 'center', 'balcony');
+        end if;
+    end
 $$;
 
 do $$
-begin
+    begin
         if not exists(select 1 from pg_type where typname = 'hall_type') then
             create type hall_type as enum ('2D', '3D', 'IMAX');
-end if;
-end
+        end if;
+    end
+$$;
+
+set intervalstyle = 'postgres';
+
+create or replace function random_sequence10() returns varchar(10) as
+$$
+    declare
+        chars text[] := '{0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F,G,H,I,J,K,L,M,N}';
+        result varchar(10) := '';
+        i integer := 0;
+    begin
+        for i in 1..10 loop
+            result := result || chars[1+random()*(array_length(chars, 1)-1)];
+        end loop;
+        return result;
+    end;
 $$;
 
 create table if not exists cinema.genres (
@@ -43,7 +59,7 @@ create table if not exists cinema.films (
     rental_end_date date not null check ( rental_end_date > rental_start_date )
     );
 
-create table if not exists cinema.films_genres ( -- todo
+create table if not exists cinema.films_genres (
     film_id uuid references cinema.films(id) on delete cascade,
     genre_id uuid references cinema.genres(id) on delete cascade,
     constraint film_genre_pkey primary key (film_id, genre_id)
@@ -59,7 +75,7 @@ create table if not exists cinema.workers (
     position_id uuid not null,
     name varchar(45) not null,
     surname varchar(45) not null,
-    passport_number varchar(80) not null unique,
+    passport_number varchar(10) not null unique,
     foreign key (position_id) references cinema.positions(id) on delete cascade
     );
 
@@ -101,7 +117,7 @@ create table if not exists cinema.sessions (
 create table if not exists cinema.tickets (
     id uuid default uuid_generate_v1() primary key,
     session_id uuid not null,
-    price numeric(8, 2) not null check ( price > 10 and price < 60 ),
+    price numeric(8, 2) not null check ( price > 0 and price < 60 ),
     foreign key (session_id) references cinema.sessions(id) on delete cascade
     );
 
@@ -109,4 +125,4 @@ create table if not exists cinema.tickets_places (
     ticket_id uuid references cinema.tickets(id) on delete cascade,
     place_id uuid references cinema.places(id) on delete cascade,
     constraint ticket_place primary key (ticket_id, place_id)
-    )
+    );
