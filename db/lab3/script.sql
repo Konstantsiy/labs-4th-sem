@@ -101,7 +101,7 @@ create table if not exists cinema.sessions (
 create table if not exists cinema.tickets (
     id uuid default uuid_generate_v1() primary key,
     session_id uuid not null,
-    price numeric(8, 2) not null check ( price > 0 and price < 60 ),
+    price numeric(8, 2) not null check ( price > 10 and price < 60 ),
     foreign key (session_id) references cinema.sessions(id) on delete cascade
     );
 
