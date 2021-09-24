@@ -17,7 +17,7 @@ $$;
 do $$
 begin
         if not exists(select 1 from pg_type where typname = 'hall_sector') then
-create type hall_sector as enum ('near the center', 'center', 'balcony');
+            create type hall_sector as enum ('near the center', 'center', 'balcony');
 end if;
 end
 $$;
@@ -25,7 +25,7 @@ $$;
 do $$
 begin
         if not exists(select 1 from pg_type where typname = 'hall_type') then
-create type hall_type as enum ('2D', '3D', 'IMAX');
+            create type hall_type as enum ('2D', '3D', 'IMAX');
 end if;
 end
 $$;
@@ -37,10 +37,10 @@ create table if not exists cinema.genres (
 
 create table if not exists cinema.films (
     id uuid default uuid_generate_v1() primary key,
-    title varchar(120) not null,
-    duration interval not null,
-    rental_start_date date not null,
-    rental_end_date date not null
+    title varchar(120) not null unique,
+    duration interval not null check (interval '40 minutes' < duration and duration < interval '3 hours 30 minutes'),
+    rental_start_date date not null check ( rental_start_date > current_date ),
+    rental_end_date date not null check ( rental_end_date > rental_start_date )
     );
 
 create table if not exists cinema.films_genres ( -- todo
@@ -51,7 +51,7 @@ create table if not exists cinema.films_genres ( -- todo
 
 create table if not exists cinema.positions (
     id uuid default uuid_generate_v1() primary key,
-    title varchar(120) not null
+    title varchar(120) not null unique
     );
 
 create table if not exists cinema.workers (
@@ -59,13 +59,13 @@ create table if not exists cinema.workers (
     position_id uuid not null,
     name varchar(45) not null,
     surname varchar(45) not null,
-    passport_number varchar(80) not null,
+    passport_number varchar(80) not null unique,
     foreign key (position_id) references cinema.positions(id) on delete cascade
     );
 
 create table if not exists cinema.halls (
     id uuid default uuid_generate_v1() primary key,
-    number integer not null,
+    number integer not null unique,
     type hall_type not null
     );
 
@@ -92,8 +92,8 @@ create table if not exists cinema.sessions (
     id uuid default uuid_generate_v1() primary key,
     film_id uuid not null,
     hall_id uuid not null,
-    date date not null,
-    time time not null,
+    date date not null check ( date > current_date ),
+    time time not null check ( time < time '23:00' and time > time '10:00'),
     foreign key (film_id) references cinema.films(id) on delete cascade,
     foreign key (hall_id) references cinema.halls(id) on delete cascade
     );
@@ -110,6 +110,3 @@ create table if not exists cinema.tickets_places (
     place_id uuid references cinema.places(id) on delete cascade,
     constraint ticket_place primary key (ticket_id, place_id)
     )
-
-
-
