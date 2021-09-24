@@ -17,7 +17,7 @@ $$;
 do $$
 begin
         if not exists(select 1 from pg_type where typname = 'hall_sector') then
-            create type hall_sector as enum ('near the center', 'center', 'balcony');
+            create type hall_sector as enum ('near the screen', 'center', 'balcony');
 end if;
 end
 $$;
