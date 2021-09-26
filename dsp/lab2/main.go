@@ -3,15 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/util"
-	"github.com/anthonynsimon/bild/blur"
 	"github.com/anthonynsimon/bild/clone"
-	"github.com/anthonynsimon/bild/imgio"
-	"github.com/anthonynsimon/bild/segment"
 	"image"
 	"image/color"
 	"image/draw"
-	"log"
 	"math"
+	"math/rand"
 	"os"
 	"strconv"
 )
@@ -21,6 +18,11 @@ const (
 	ColorWhite = 0xFF
 	ColorYellow = 0xE0
 )
+
+var colors = [][3]byte{
+	{255, 0, 0},
+	{0, 255, 0},
+}
 
 func prepareVars() (string, uint8, error) {
 	args := os.Args
@@ -79,7 +81,6 @@ func BinarizeImage1(img image.Image, level uint8) (*image.Gray, [][]byte) {
 type Coordinate struct {
 	H int
 	W int
-	C bool
 }
 
 type Coordinates []Coordinate
@@ -370,70 +371,219 @@ func CalcPerim(bm [][]byte, coordinates Coordinates) int {
 	return n
 }
 
-func CalcPhotometricParams(img image.Image) (float64, float64, float64) {
-	var rs, gs, bs []uint32
-	var rSum, gSum, bSum uint32
-	for x := 0; x < img.Bounds().Dx(); x++ {
-		for y := 0; y < img.Bounds().Dy(); y++ {
-			c := img.At(x, y)
-			r, g, b, _ := c.RGBA()
-
-			rs = append(rs, r)
-			gs = append(gs, g)
-			bs = append(bs, b)
-
-			rSum += r
-			gSum += g
-			bSum += b
-		}
-	}
-	rAve := float64(rSum) / float64(len(rs))
-	gAve := float64(gSum) / float64(len(gs))
-	bAve := float64(bSum) / float64(len(bs))
-
-	return rAve, gAve, bAve
+type Cor2C struct {
+	Cor Coordinate
+	C int
 }
 
+//func KMeans(clusters []Coordinate, cors []Cor2C) {
+//	for i, cor := range cors {
+//		cMin, _ := findNearest(cor, clusters)
+//		cors[i].C = cMin
+//	}
+//	mLen := make([]int, len(clusters))
+//	for {
+//		for i := range clusters {
+//			clusters[i] = Coordinate{}
+//			mLen[i] = 0
+//		}
+//		for _, cor := range cors {
+//			clusters[cor.C].W += cor.Cor.W
+//			clusters[cor.C].H += cor.Cor.H
+//			mLen[cor.C]++
+//		}
+//		for i := range clusters {
+//			clusters[i].W /= mLen[i]
+//			clusters[i].H /= mLen[i]
+//		}
+//		var changes int
+//		for i, cor := range cors {
+//			if cMin, _ := findNearest(cor, clusters); cMin != cor.C {
+//				changes++
+//				cors[i].C = cMin
+//			}
+//		}
+//		if changes == 0 {
+//			return
+//		}
+//	}
+//}
+//
+//func kMeansPP(clustersNumber int, cors []Cor2C) []Coordinate {
+//	clusters := make([]Coordinate, clustersNumber)
+//	clusters[0] = cors[rand.Intn(len(cors))].Cor
+//	d2 := make([]float64, len(cors))
+//
+//	for i := 0; i < clustersNumber; i++ {
+//		var sum float64
+//		for j, cor := range cors {
+//			_, dMin := findNearest(cor, clusters[:i])
+//			d2[j] = dMin * dMin
+//			sum += d2[j]
+//		}
+//		target := rand.Float64() * sum
+//		j := 0
+//		for sum = d2[0]; sum < target; sum += d2[j] {
+//			j++
+//		}
+//		clusters[i] = cors[j].Cor
+//	}
+//	return clusters
+//}
+//
+//func findNearest(cor Cor2C, clusters []Coordinate) (int, float64) {
+//	iMin := 0
+//	fmt.Println("means len: ", len(clusters))
+//	dMin := math.Hypot(float64(cor.Cor.W-clusters[0].W), float64(cor.Cor.H-clusters[0].H))
+//	for i := 1; i < len(clusters); i++ {
+//		d := math.Hypot(float64(cor.Cor.W-clusters[i].W), float64(cor.Cor.H-clusters[i].H))
+//		if d < dMin {
+//			dMin = d
+//			iMin = i
+//		}
+//	}
+//	return iMin, dMin
+//}
+//
+//func CalcPhotometricParams(img image.Image) (float64, float64, float64) {
+//	var rs, gs, bs []uint32
+//	var rSum, gSum, bSum uint32
+//	for x := 0; x < img.Bounds().Dx(); x++ {
+//		for y := 0; y < img.Bounds().Dy(); y++ {
+//			c := img.At(x, y)
+//			r, g, b, _ := c.RGBA()
+//
+//			rs = append(rs, r)
+//			gs = append(gs, g)
+//			bs = append(bs, b)
+//
+//			rSum += r
+//			gSum += g
+//			bSum += b
+//		}
+//	}
+//	rAve := float64(rSum) / float64(len(rs))
+//	gAve := float64(gSum) / float64(len(gs))
+//	bAve := float64(bSum) / float64(len(bs))
+//
+//	return rAve, gAve, bAve
+//}
+// ---------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------
+
+func CalcEuclideanDistance(from, to Coordinate) float64 {
+	return math.Sqrt(math.Pow(float64(from.W - to.W), 2) + math.Pow(float64(from.H - to.H), 2))
+}
+
+func CalcMassCenter(coordinates Coordinates) Coordinate {
+	var sumW, sumH int
+	for _, c := range coordinates {
+		sumW += c.W
+		sumH += c.H
+	}
+	cW := sumW / len(coordinates)
+	cH := sumH / len(coordinates)
+	return Coordinate{H: cH, W: cW}
+}
+
+func InitClusters(k, width, height int) []Coordinate {
+	var clusters []Coordinate
+	for i := 1; i < k+1; i++ {
+		rW := rand.Intn(width)
+		rH := rand.Intn(height)
+		clusters = append(clusters, Coordinate{W: rW, H: rH})
+	}
+	return clusters
+}
+
+func GetMin(arr []float64) float64 {
+	min := arr[0]
+	for _, a := range arr {
+		if min < a {
+			min = a
+		}
+	}
+	return min
+}
+
+
+func UpdateMeans(cords []Cor2C, clusters []Cor2C) {
+	for _, c := range cords {
+		var dists []float64
+		for _, cluster := range clusters {
+			dist := CalcEuclideanDistance(c.Cor, cluster.Cor)
+			dists = append(dists, dist)
+		}
+		minDist := GetMin(dists)
+		for i, _ := range dists {
+			if minDist == dists[i] {
+				c.C = clusters[i].C
+				break
+			}
+		}
+	}
+}
+
+
 func main() {
-	filename, level, err := prepareVars()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	curDir, _ := os.Getwd()
-	path := curDir+"/dsp/lab2/images/"
-
-	img, err := imgio.Open(path+filename+".jpg")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	binImg := BinarizeImageWithLevel(img, level)
-	err = util.SavePNG(binImg, path, filename, "bin_1")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	img = blur.Gaussian(img, 3.3)
-	imgGray := segment.Threshold(img, level)
-	err = util.SavePNG(imgGray, path, filename, "bin_2")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	bm := GetBinMap(*imgGray)
-	objs, _ := FindObjectsRec(bm)
-
-	for k, v := range objs {
-		s, p, c, e, o := CalcCharacteristics(bm, v)
-		fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
-	}
-
+	//filename, level, err := prepareVars()
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//curDir, _ := os.Getwd()
+	//path := curDir+"/dsp/lab2/images/"
+	//
+	//img, err := imgio.Open(path+filename+".jpg")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//binImg := BinarizeImageWithLevel(img, level)
+	//err = util.SavePNG(binImg, path, filename, "bin_1")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//img = blur.Gaussian(img, 3.3)
+	//imgGray := segment.Threshold(img, level)
+	//err = util.SavePNG(imgGray, path, filename, "bin_2")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
 	//bm := GetBinMap(*imgGray)
-	//bm = FindObjectsRec(bm)
+	//objects, _ := FindObjectsRec(bm)
+	//
+	////for k, v := range objects {
+	////	s, p, c, e, o := CalcCharacteristics(bm, v)
+	////	fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
+	////}
+	//
+	//var cors []Cor2C
+	//for _, coordinates := range objects {
+	//	for i, c := range coordinates {
+	//		cors = append(cors, Cor2C{Cor: Coordinate{c.H, c.W}, C: i})
+	//	}
+	//}
+	//
+	////clusters := InitClusters(4, len(bm[0]), len(bm))
+	//
+	////KMeans(clusters, cors)
+	//
+	//var n byte = 0
+	//var curC int
+	//for _, c := range cors {
+	//	if c.C != curC {
+	//		n++
+	//	}
+	//	bm[c.Cor.H][c.Cor.W] = n
+	//}
+	//
 	//for i := 0; i < len(bm); i++ {
 	//	fmt.Println(bm[i])
 	//}
+
 
 
 
