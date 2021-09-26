@@ -7,7 +7,6 @@ import (
 	"github.com/anthonynsimon/bild/clone"
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/anthonynsimon/bild/segment"
-	"github.com/sirupsen/logrus"
 	"image"
 	"image/color"
 	"image/draw"
@@ -80,6 +79,7 @@ func BinarizeImage1(img image.Image, level uint8) (*image.Gray, [][]byte) {
 type Coordinate struct {
 	H int
 	W int
+	C bool
 }
 
 type Coordinates []Coordinate
@@ -157,58 +157,6 @@ func FindObjects(binMap [][]byte) (map[byte]Coordinates, [][]byte) {
 	return objects, binMap
 }
 
-func getMinMax(arr []int) (int, int) {
-	max := arr[0]
-	min := arr[0]
-	for _, value := range arr {
-		if max < value {
-			max = value
-		}
-		if min > value {
-			min = value
-		}
-	}
-	return min, max
-}
-
-func ToLines(coordinates Coordinates) []int {
-	var heights, width []int
-	for _, c := range coordinates {
-		heights = append(heights, c.H)
-		width = append(width, c.W)
-	}
-	minHeight, maxHeight := getMinMax(heights)
-	minWidth, _ := getMinMax(width)
-
-	fmt.Printf("minHeight: %d\tmaxHeight: %d\n", minHeight, maxHeight)
-
-	lines := make([]int, maxHeight - minHeight + 1)
-
-	if minHeight == maxHeight {
-		logrus.Info("minHeight = masHeight")
-		return lines
-	}
-
-	for _, c := range coordinates {
-		lines[c.H-minHeight] = c.W - minWidth
-	}
-
-	return lines
-}
-
-func CalcPerimeter(coordinates Coordinates) int {
-	lines := ToLines(coordinates)
-	perimeter := 0
-	if len(lines) >= 2 {
-		perimeter += lines[0]
-		perimeter += lines[len(lines)-1]
-		for i := 1; i < len(lines) - 1; i++ {
-			perimeter += 2
-		}
-	}
-	return perimeter
-}
-
 func moment(i, j int, wMean, hMean float64, coordinates Coordinates) float64 {
 	var result float64
 	for _, c := range coordinates {
@@ -217,9 +165,9 @@ func moment(i, j int, wMean, hMean float64, coordinates Coordinates) float64 {
 	return result
 }
 
-func CalcCharacteristics(coordinates Coordinates) (int, int, float64, float64) {
+func CalcCharacteristics(bm [][]byte, coordinates Coordinates) (int, int, float64, float64, float64) {
 	square := len(coordinates)
-	perimeter := 0
+	perimeter := CalcPerim(bm, coordinates)
 	compact := math.Pow(float64(perimeter), 2) / float64(square)
 
 	sumW, sumH := 0, 0
@@ -238,7 +186,9 @@ func CalcCharacteristics(coordinates Coordinates) (int, int, float64, float64) {
 	denominator := m20 + m02 - math.Sqrt(math.Pow(m20-m02, 2)+4*math.Pow(m11, 2))
 	elongation := nominator / denominator
 
-	return square, perimeter, compact, elongation
+	orientation := 0.5 * math.Atan((2 * m11) / (m20 - m02))
+
+	return square, perimeter, compact, elongation, orientation
 }
 
 func bc(c []uint8) bool {
@@ -348,12 +298,12 @@ func Binarization(img image.Image, level uint8) (*image.Gray, [][]byte) {
 	return dst, binMap
 }
 
-func GetBinMap(img image.Gray) [][]int {
+func GetBinMap(img image.Gray) [][]byte {
 	bounds := img.Bounds()
-	binMap := make([][]int, bounds.Dy())
+	binMap := make([][]byte, bounds.Dy())
 
 	for y := 0; y < bounds.Dy(); y++ {
-		binMap[y] = make([]int, bounds.Dx())
+		binMap[y] = make([]byte, bounds.Dx())
 		for x := 0; x < bounds.Dx(); x++ {
 			pos := y * img.Stride + x
 
@@ -368,33 +318,80 @@ func GetBinMap(img image.Gray) [][]int {
 	return binMap
 }
 
-func fill(bm [][]int, x, y int, c int) {
+func fill(bm [][]byte, x, y int, c byte, objects map[byte]Coordinates) {
 	if bm[x][y] == 1 {
 		bm[x][y] = c
+		if _, ok := objects[c]; !ok {
+			objects[c] = Coordinates{}
+		}
+		objects[c] = append(objects[c], Coordinate{H: x, W: y})
 		if x > 0 {
-			fill(bm, x - 1, y, c)
+			fill(bm, x - 1, y, c, objects)
 		}
 		if x < len(bm) - 1 {
-			fill(bm, x + 1, y, c)
+			fill(bm, x + 1, y, c, objects)
 		}
 		if y > 0 {
-			fill(bm, x, y - 1, c)
+			fill(bm, x, y - 1, c, objects)
 		}
 		if y < len(bm[0]) - 1 {
-			fill(bm, x, y + 1, c)
+			fill(bm, x, y + 1, c, objects)
 		}
 	}
 }
 
-func FullFill(bm [][]int) [][]int {
-	var c int = 1
+func FindObjectsRec(bm [][]byte) (map[byte]Coordinates, [][]byte) {
+	objects := make(map[byte]Coordinates)
+	var c byte = 1
 	for i := 0; i < len(bm); i++ {
 		for j := 0; j < len(bm[0]); j++ {
 			c++
-			fill(bm, i, j, c)
+			fill(bm, i, j, c, objects)
 		}
 	}
-	return bm
+	return objects, bm
+}
+
+func isBoundary(bm [][]byte, h, w int) bool {
+	if h == 0 || h == len(bm)-1 || w == 0 || w == len(bm[0])-1 {
+		return true
+	}
+	return bm[h+1][w] == 0 || bm[h-1][w] == 0 || bm[h][w+1] == 0 || bm[h][w-1] == 0
+}
+
+func CalcPerim(bm [][]byte, coordinates Coordinates) int {
+	n := 0
+	for _, c := range coordinates {
+		if isBoundary(bm, c.H, c.W) {
+			n++
+		}
+	}
+
+	return n
+}
+
+func CalcPhotometricParams(img image.Image) (float64, float64, float64) {
+	var rs, gs, bs []uint32
+	var rSum, gSum, bSum uint32
+	for x := 0; x < img.Bounds().Dx(); x++ {
+		for y := 0; y < img.Bounds().Dy(); y++ {
+			c := img.At(x, y)
+			r, g, b, _ := c.RGBA()
+
+			rs = append(rs, r)
+			gs = append(gs, g)
+			bs = append(bs, b)
+
+			rSum += r
+			gSum += g
+			bSum += b
+		}
+	}
+	rAve := float64(rSum) / float64(len(rs))
+	gAve := float64(gSum) / float64(len(gs))
+	bAve := float64(bSum) / float64(len(bs))
+
+	return rAve, gAve, bAve
 }
 
 func main() {
@@ -419,51 +416,57 @@ func main() {
 
 	img = blur.Gaussian(img, 3.3)
 	imgGray := segment.Threshold(img, level)
-
 	err = util.SavePNG(imgGray, path, filename, "bin_2")
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	bm := GetBinMap(*imgGray)
+	objs, _ := FindObjectsRec(bm)
+
+	for k, v := range objs {
+		s, p, c, e, o := CalcCharacteristics(bm, v)
+		fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
+	}
+
 	//bm := GetBinMap(*imgGray)
-	//objs, bm := FindObjects(bm)
-
-	//for k, v := range objs {
-	//	fmt.Printf("k: %d, coord's: %d\n", k, len(v))
-	//}
-
-
-	//bm := GetBinMap(*imgGray)
-	//bm = FullFill(bm)
+	//bm = FindObjectsRec(bm)
 	//for i := 0; i < len(bm); i++ {
 	//	fmt.Println(bm[i])
 	//}
+
 
 
 
 
 
 	//var mx = [][]byte{
-	//	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-	//	{0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1},
-	//	{0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1},
-	//	{0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0},
-	//	{0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0},
-	//	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-	//	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-	//	{0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0},
-	//	{0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0},
+	//	{0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0},
+	//	{0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1},
+	//	{0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+	//	{0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+	//	{0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0},
+	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0},
+	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
+	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
+	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
 	//}
 	//
-	//o, bm := FindObjects(mx)
-	//for i := 0; i < len(bm); i++ {
-	//	fmt.Println(bm[i])
+	//o, mx := FindObjectsRec(mx)
+	//for i := 0; i < len(mx); i++ {
+	//	fmt.Println(mx[i])
 	//}
 	//
 	//for k, v := range o {
 	//	fmt.Printf("k: %d v's: %+v\n", k, v)
 	//}
-
+	//
+	//for k, v := range o {
+	//	p := CalcPerim(mx, v)
+	//	fmt.Printf("k: %d, p: %d\n", k, p)
+	//	//s, p, c, e := CalcCharacteristics(v)
+	//	//fmt.Printf("k: %d\tsquare: %d\tperimeter: %d\tcompact: %.4f\telongation: %.4f\n", k, s, p, c, e)
+	//}
 }
 
 
