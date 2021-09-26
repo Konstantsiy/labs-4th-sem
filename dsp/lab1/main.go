@@ -66,7 +66,7 @@ func main() {
 	}
 
 	imgGamma := gamma.AddGamma(img, c, y)
-	err = util.SaveFile(imgGamma, path, filename, "gamma")
+	err = util.SaveJPG(imgGamma, path, filename, "gamma")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func main() {
 	}
 
 	imgSobel := filter.ApplySobel(img)
-	err = util.SaveFile(imgSobel, path, filename, "sobel")
+	err = util.SaveJPG(imgSobel, path, filename, "sobel")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -4,16 +4,34 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"image/png"
 	"os"
 )
 
-func SaveFile(img image.Image, path, filename, postfix string) error {
+func SaveJPG(img image.Image, path, filename, postfix string) error {
+	filename += ".jpg"
 	f, err := os.Create(path+ filename[0:len(filename)-4]+"_"+postfix+filename[len(filename)-4:])
 	if err != nil {
 		return err
 	}
 
 	err = jpeg.Encode(f, img, &jpeg.Options{Quality: 99})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func SavePNG(img image.Image, path, filename, postfix string) error {
+	filename += ".png"
+	f, err := os.Create(path+ filename[0:len(filename)-4]+"_"+postfix+filename[len(filename)-4:])
+	if err != nil {
+		return err
+	}
+
+	var enc png.Encoder
+	enc.CompressionLevel = 90
+	err = enc.Encode(f, img)
 	if err != nil {
 		return err
 	}
