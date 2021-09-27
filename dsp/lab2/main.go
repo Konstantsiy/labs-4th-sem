@@ -4,13 +4,17 @@ import (
 	"fmt"
 	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/util"
 	"github.com/anthonynsimon/bild/clone"
+	"github.com/anthonynsimon/bild/imgio"
+	"github.com/anthonynsimon/bild/segment"
 	"image"
 	"image/color"
 	"image/draw"
+	"log"
 	"math"
 	"math/rand"
 	"os"
 	"strconv"
+	"time"
 )
 
 const (
@@ -526,31 +530,32 @@ func UpdateMeans(cords []Cor2C, clusters []Cor2C) {
 
 
 func main() {
-	//filename, level, err := prepareVars()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//curDir, _ := os.Getwd()
-	//path := curDir+"/dsp/lab2/images/"
-	//
-	//img, err := imgio.Open(path+filename+".jpg")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//binImg := BinarizeImageWithLevel(img, level)
-	//err = util.SavePNG(binImg, path, filename, "bin_1")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
+	filename, level, err := prepareVars()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	curDir, _ := os.Getwd()
+	path := curDir+"/dsp/lab2/images/"
+
+	img, err := imgio.Open(path+filename+".jpg")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	binImg := BinarizeImageWithLevel(img, level)
+	err = util.SavePNG(binImg, path, filename, "bin_1")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	//img = blur.Gaussian(img, 3.3)
-	//imgGray := segment.Threshold(img, level)
-	//err = util.SavePNG(imgGray, path, filename, "bin_2")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
+	img = blur.Gaussian(img, 3.3)
+	imgGray := segment.Threshold(img, level)
+	err = util.SavePNG(imgGray, path, filename, "bin_2")
+	if err != nil {
+		log.Fatal(err)
+	}
 	//
 	//bm := GetBinMap(*imgGray)
 	//objects, _ := FindObjectsRec(bm)
@@ -567,9 +572,9 @@ func main() {
 	//	}
 	//}
 	//
-	////clusters := InitClusters(4, len(bm[0]), len(bm))
+	////cls := InitClusters(4, len(bm[0]), len(bm))
 	//
-	////KMeans(clusters, cors)
+	////KMeans(cls, cors)
 	//
 	//var n byte = 0
 	//var curC int
@@ -585,27 +590,48 @@ func main() {
 	//}
 
 
-
-
-
-
-
 	//var mx = [][]byte{
 	//	{0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0},
-	//	{0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1},
-	//	{0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-	//	{0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-	//	{0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0},
-	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0},
+	//	{0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1},
+	//	{0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1},
+	//	{0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1},
+	//	{0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0},
+	//	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
 	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
 	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
 	//}
+
+	//o, _ := FindObjectsRec(mx)
+	//var points []Point
+	//for _, cors := range o {
+	//	for _, c := range cors {
+	//		points = append(points, Point{H: c.H, W: c.W, C: 0})
+	//	}
+	//}
+
+	//var d clusters.Observations
+	//for _, v :=  range o {
+	//	for _, c := range v {
+	//		d = append(d, clusters.Coordinates{
+	//			float64(c.W),
+	//			float64(c.H),
+	//		})
+	//	}
+	//}
 	//
-	//o, mx := FindObjectsRec(mx)
+	//km := kmeans.New()
+	//cls, _ := km.Partition(d, 6)
+	//for _, c := range cls {
+	//	fmt.Printf("Centered at x: %.2f y: %.2f\n", c.Center[0], c.Center[1])
+	//	fmt.Printf("Matching data points: %+v\n\n", c.Observations)
+	//}
+	//
 	//for i := 0; i < len(mx); i++ {
 	//	fmt.Println(mx[i])
 	//}
+
+
 	//
 	//for k, v := range o {
 	//	fmt.Printf("k: %d v's: %+v\n", k, v)
@@ -618,5 +644,118 @@ func main() {
 	//	//fmt.Printf("k: %d\tsquare: %d\tperimeter: %d\tcompact: %.4f\telongation: %.4f\n", k, s, p, c, e)
 	//}
 }
+
+type Point struct {
+	H int
+	W int
+	C int
+}
+func (p *Point) FindSameMarkPoints(points []Point) []Point {
+	var result []Point
+	for _, point := range points {
+		if p.C == point.C {
+			result = append(result, point)
+		}
+	}
+	return result
+}
+
+func (p *Point) FindNearestCluster(clusters []Point) {
+	dests := make(map[int]float64)
+	for i, c := range clusters {
+		dests[i] = p.calcDestTo(c)
+	}
+	minI := getMin(dests)
+	p.C = clusters[minI].C
+}
+
+func (p *Point) calcDestTo(anotherPoint Point) float64 {
+	return math.Sqrt(math.Pow(float64(p.H-anotherPoint.H), 2) + math.Pow(float64(p.W-anotherPoint.W), 2))
+}
+
+func getMin(dests map[int]float64) int {
+	min := dests[0]
+	minI := 0
+	for i, v := range dests {
+		if v < min {
+			minI = i
+		}
+	}
+	return minI
+}
+// ---------------------------------------------------------------------------------------------------------------------
+func CalculateCenterMass(points []Point) Point {
+	var sumW, sumH int
+	for _, p := range points {
+		sumW += p.W
+		sumH += p.H
+	}
+	aveW, aveH := sumW / len(points), sumH / len(points)
+	return Point{H: aveH, W: aveW}
+}
+
+func GenerateClusters(k, w, h int) []Point {
+	var points []Point
+	rand.Seed(time.Now().UnixNano())
+	for i := 0; i < k; i++ {
+		rW := rand.Intn(w)
+		rH := rand.Intn(h)
+		points = append(points, Point{H: rH, W: rW, C: (i+1) * 10})
+	}
+	return points
+}
+
+func KMeansProcess(pointsRes []Point, countK, w, h, iters int) []Point {
+	clusters := GenerateClusters(countK, w, h)
+	var points []Point
+	for i := 0; i < 1; i++ {
+		fmt.Printf("%d iteration\n", i+1)
+
+		points = points[:0]
+
+		for _, p := range pointsRes {
+			p.FindNearestCluster(clusters)
+			points = append(points, p)
+		}
+
+		fmt.Printf("%+v", points)
+
+
+		c_points := make(map[Point][]Point)
+
+		for _, c := range clusters {
+			ps := c.FindSameMarkPoints(points)
+			fmt.Printf("c: %v, c_ps: %+v\n", c, ps)
+			c_points[c] = ps
+		}
+
+		for c, p := range c_points {
+			fmt.Printf("cluster: %v, points: %+v\n", c, p)
+		}
+
+		var j = 0
+		for k, v := range c_points {
+			new_c := CalculateCenterMass(v)
+			if k != new_c {
+				clusters[j] = new_c
+				j++
+			}
+		}
+
+	}
+	return points
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
