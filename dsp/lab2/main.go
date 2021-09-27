@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/util"
 	"github.com/anthonynsimon/bild/clone"
-	"github.com/anthonynsimon/bild/imgio"
-	"github.com/anthonynsimon/bild/segment"
+	"github.com/muesli/clusters"
+	"github.com/muesli/kmeans"
 	"image"
 	"image/color"
 	"image/draw"
-	"log"
 	"math"
 	"math/rand"
 	"os"
@@ -87,11 +86,11 @@ type Coordinate struct {
 	W int
 }
 
-type Coordinates []Coordinate
+type Coordinates1 []Coordinate
 
-func FindObjects(binMap [][]byte) (map[byte]Coordinates, [][]byte) {
+func FindObjects(binMap [][]byte) (map[byte]Coordinates1, [][]byte) {
 	height, width := len(binMap), len(binMap[0])
-	objects := make(map[byte]Coordinates)
+	objects := make(map[byte]Coordinates1)
 	var cur byte
 	var A, B, C byte
 	for i := 0; i < height; i++ {
@@ -124,25 +123,25 @@ func FindObjects(binMap [][]byte) (map[byte]Coordinates, [][]byte) {
 				}
 				binMap[i][j] = cur
 				if _, ok := objects[cur]; !ok {
-					objects[cur] = Coordinates{}
+					objects[cur] = Coordinates1{}
 				}
 				objects[cur] = append(objects[cur], Coordinate{H: i, W: j})
 			} else if B != 0 && C == 0 {
 				binMap[i][j] = B
 				if _, ok := objects[B]; !ok {
-					objects[B] = Coordinates{}
+					objects[B] = Coordinates1{}
 				}
 				objects[B] = append(objects[B], Coordinate{H: i, W: j})
 			} else if B == 0 && C != 0 {
 				binMap[i][j] = C
 				if _, ok := objects[C]; !ok {
-					objects[C] = Coordinates{}
+					objects[C] = Coordinates1{}
 				}
 				objects[C] = append(objects[C], Coordinate{H: i, W: j})
 			} else if B != 0 && C != 0 {
 				binMap[i][j] = B
 				if _, ok := objects[B]; !ok {
-					objects[B] = Coordinates{}
+					objects[B] = Coordinates1{}
 				}
 				objects[B] = append(objects[B], Coordinate{H: i, W: j})
 				if B != C {
@@ -162,7 +161,7 @@ func FindObjects(binMap [][]byte) (map[byte]Coordinates, [][]byte) {
 	return objects, binMap
 }
 
-func moment(i, j int, wMean, hMean float64, coordinates Coordinates) float64 {
+func moment(i, j int, wMean, hMean float64, coordinates Coordinates1) float64 {
 	var result float64
 	for _, c := range coordinates {
 		result += math.Pow(float64(c.W)-wMean, float64(i)) * math.Pow(float64(c.H)-hMean, float64(j))
@@ -170,7 +169,7 @@ func moment(i, j int, wMean, hMean float64, coordinates Coordinates) float64 {
 	return result
 }
 
-func CalcCharacteristics(bm [][]byte, coordinates Coordinates) (int, int, float64, float64, float64) {
+func CalcCharacteristics(bm [][]byte, coordinates Coordinates1) (int, int, float64, float64, float64) {
 	square := len(coordinates)
 	perimeter := CalcPerim(bm, coordinates)
 	compact := math.Pow(float64(perimeter), 2) / float64(square)
@@ -323,11 +322,11 @@ func GetBinMap(img image.Gray) [][]byte {
 	return binMap
 }
 
-func fill(bm [][]byte, x, y int, c byte, objects map[byte]Coordinates) {
+func fill(bm [][]byte, x, y int, c byte, objects map[byte]Coordinates1) {
 	if bm[x][y] == 1 {
 		bm[x][y] = c
 		if _, ok := objects[c]; !ok {
-			objects[c] = Coordinates{}
+			objects[c] = Coordinates1{}
 		}
 		objects[c] = append(objects[c], Coordinate{H: x, W: y})
 		if x > 0 {
@@ -345,8 +344,8 @@ func fill(bm [][]byte, x, y int, c byte, objects map[byte]Coordinates) {
 	}
 }
 
-func FindObjectsRec(bm [][]byte) (map[byte]Coordinates, [][]byte) {
-	objects := make(map[byte]Coordinates)
+func FindObjectsRec(bm [][]byte) (map[byte]Coordinates1, [][]byte) {
+	objects := make(map[byte]Coordinates1)
 	var c byte = 1
 	for i := 0; i < len(bm); i++ {
 		for j := 0; j < len(bm[0]); j++ {
@@ -364,7 +363,7 @@ func isBoundary(bm [][]byte, h, w int) bool {
 	return bm[h+1][w] == 0 || bm[h-1][w] == 0 || bm[h][w+1] == 0 || bm[h][w-1] == 0
 }
 
-func CalcPerim(bm [][]byte, coordinates Coordinates) int {
+func CalcPerim(bm [][]byte, coordinates Coordinates1) int {
 	n := 0
 	for _, c := range coordinates {
 		if isBoundary(bm, c.H, c.W) {
@@ -479,7 +478,7 @@ func CalcEuclideanDistance(from, to Coordinate) float64 {
 	return math.Sqrt(math.Pow(float64(from.W - to.W), 2) + math.Pow(float64(from.H - to.H), 2))
 }
 
-func CalcMassCenter(coordinates Coordinates) Coordinate {
+func CalcMassCenter(coordinates Coordinates1) Coordinate {
 	var sumW, sumH int
 	for _, c := range coordinates {
 		sumW += c.W
@@ -530,40 +529,39 @@ func UpdateMeans(cords []Cor2C, clusters []Cor2C) {
 
 
 func main() {
-	filename, level, err := prepareVars()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	curDir, _ := os.Getwd()
-	path := curDir+"/dsp/lab2/images/"
-
-	img, err := imgio.Open(path+filename+".jpg")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	binImg := BinarizeImageWithLevel(img, level)
-	err = util.SavePNG(binImg, path, filename, "bin_1")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//img = blur.Gaussian(img, 3.3)
-	img = blur.Gaussian(img, 3.3)
-	imgGray := segment.Threshold(img, level)
-	err = util.SavePNG(imgGray, path, filename, "bin_2")
-	if err != nil {
-		log.Fatal(err)
-	}
+	//filename, level, err := prepareVars()
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 	//
+	//curDir, _ := os.Getwd()
+	//path := curDir+"/dsp/lab2/images/"
+	//
+	//img, err := imgio.Open(path+filename+".jpg")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//binImg := BinarizeImageWithLevel(img, level)
+	//err = util.SavePNG(binImg, path, filename, "bin_1")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//img = GaussianBlur(img, 3.3)
+	//imgGray := segment.Threshold(img, level)
+	//err = util.SavePNG(imgGray, path, filename, "bin_2")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+
 	//bm := GetBinMap(*imgGray)
 	//objects, _ := FindObjectsRec(bm)
-	//
-	////for k, v := range objects {
-	////	s, p, c, e, o := CalcCharacteristics(bm, v)
-	////	fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
-	////}
+
+	//for k, v := range objects {
+	//	s, p, c, e, o := CalcCharacteristics(bm, v)
+	//	fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
+	//}
 	//
 	//var cors []Cor2C
 	//for _, coordinates := range objects {
@@ -590,59 +588,56 @@ func main() {
 	//}
 
 
-	//var mx = [][]byte{
-	//	{0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0},
-	//	{0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1},
-	//	{0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1},
-	//	{0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1},
-	//	{0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0},
-	//	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
-	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
-	//	{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
-	//}
+	var mx = [][]byte{
+		{0,0,0,0,0,0,0,1,1,1},
+		{0,0,1,1,1,0,0,1,1,1},
+		{0,0,1,1,1,0,0,1,1,1},
+		{0,0,1,1,1,0,0,1,1,1},
+		{0,0,0,0,0,0,0,0,0,0},
+		{0,0,0,0,0,0,0,0,0,0},
+		{0,0,0,0,0,1,1,1,1,1},
+		{0,0,0,0,0,1,1,1,1,1},
+		{0,0,0,0,0,1,1,1,1,1},
+		{0,0,0,0,0,0,0,1,1,1},
+		//{0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0},
+		//{0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1},
+		//{0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1},
+		//{0,0,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1},
+		//{0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0},
+		//{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		//{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
+		//{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
+		//{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
+	}
 
-	//o, _ := FindObjectsRec(mx)
-	//var points []Point
-	//for _, cors := range o {
-	//	for _, c := range cors {
-	//		points = append(points, Point{H: c.H, W: c.W, C: 0})
-	//	}
-	//}
+	o, _ := FindObjectsRec(mx)
+	var points []Point
+	for _, cors := range o {
+		for _, c := range cors {
+			points = append(points, Point{H: c.H, W: c.W, C: 0})
+		}
+	}
 
-	//var d clusters.Observations
-	//for _, v :=  range o {
-	//	for _, c := range v {
-	//		d = append(d, clusters.Coordinates{
-	//			float64(c.W),
-	//			float64(c.H),
-	//		})
-	//	}
-	//}
-	//
-	//km := kmeans.New()
-	//cls, _ := km.Partition(d, 6)
-	//for _, c := range cls {
-	//	fmt.Printf("Centered at x: %.2f y: %.2f\n", c.Center[0], c.Center[1])
-	//	fmt.Printf("Matching data points: %+v\n\n", c.Observations)
-	//}
-	//
-	//for i := 0; i < len(mx); i++ {
-	//	fmt.Println(mx[i])
-	//}
+	var d clusters.Observations
+	for _, v :=  range o {
+		for _, c := range v {
+			d = append(d, clusters.Coordinates{
+				float64(c.W),
+				float64(c.H),
+			})
+		}
+	}
 
+	km := kmeans.New()
+	cls, _ := km.Partition(d, 5)
+	for _, c := range cls {
+		fmt.Printf("Centered at x: %.2f y: %.2f\n", c.Center[0], c.Center[1])
+		fmt.Printf("Matching data points: %+v\n\n", c.Observations)
+	}
 
-	//
-	//for k, v := range o {
-	//	fmt.Printf("k: %d v's: %+v\n", k, v)
-	//}
-	//
-	//for k, v := range o {
-	//	p := CalcPerim(mx, v)
-	//	fmt.Printf("k: %d, p: %d\n", k, p)
-	//	//s, p, c, e := CalcCharacteristics(v)
-	//	//fmt.Printf("k: %d\tsquare: %d\tperimeter: %d\tcompact: %.4f\telongation: %.4f\n", k, s, p, c, e)
-	//}
+	for i := 0; i < len(mx); i++ {
+		fmt.Println(mx[i])
+	}
 }
 
 type Point struct {
@@ -683,7 +678,7 @@ func getMin(dests map[int]float64) int {
 	}
 	return minI
 }
-// ---------------------------------------------------------------------------------------------------------------------
+
 func CalculateCenterMass(points []Point) Point {
 	var sumW, sumH int
 	for _, p := range points {
