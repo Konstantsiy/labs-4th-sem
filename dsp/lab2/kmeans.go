@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/muesli/clusters"
 	"math/rand"
 )
 
@@ -20,7 +19,7 @@ type Kmeans struct {
 
 // The Plotter interface lets you implement your own plotters
 type Plotter interface {
-	Plot(cc clusters.Clusters, iteration int) error
+	Plot(cc Clusters, iteration int) error
 }
 
 // NewWithOptions returns a Kmeans configuration struct with custom settings
@@ -44,12 +43,12 @@ func New() Kmeans {
 
 // Partition executes the k-means algorithm on the given dataset and
 // partitions it into k clusters
-func (m Kmeans) Partition(dataset clusters.Observations, k int) (clusters.Clusters, error) {
+func (m Kmeans) Partition(dataset Observations, k int) (Clusters, error) {
 	if k > len(dataset) {
-		return clusters.Clusters{}, fmt.Errorf("the size of the data set must at least equal k")
+		return Clusters{}, fmt.Errorf("the size of the data set must at least equal k")
 	}
 
-	cc, err := clusters.New(k, dataset)
+	cc, err := NewCluster(k, dataset)
 	if err != nil {
 		return cc, err
 	}
