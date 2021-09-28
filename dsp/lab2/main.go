@@ -7,7 +7,6 @@ import (
 	"github.com/anthonynsimon/bild/clone"
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/anthonynsimon/bild/segment"
-	"github.com/muesli/clusters"
 	"github.com/muesli/kmeans"
 	"image"
 	"image/color"
@@ -26,6 +25,22 @@ const (
 var colors = [][3]byte{
 	{255, 0, 0},
 	{0, 255, 0},
+	{0, 0, 255},
+	{255, 255, 0},
+	{0, 255, 255},
+	{255, 0, 255},
+	{100, 0, 0},
+	{0, 100, 0},
+	{0, 0, 100},
+	{100, 100, 0},
+	{0, 100, 100},
+	{100, 0, 100},
+	{175, 0, 0},
+	{0, 175, 0},
+	{0, 0, 175},
+	{175, 175, 0},
+	{175, 0, 175},
+	{0, 175, 175},
 }
 
 func prepareVars() (string, uint8, error) {
@@ -327,6 +342,25 @@ func CalcPerim(bm [][]byte, coordinates Coordinates1) int {
 	return n
 }
 
+func BinMapToImage(bm [][]byte, img image.Gray) image.Image {
+	src := AsRGBA(&img)
+	for y := 0; y < img.Bounds().Dy(); y++ {
+		for x := 0; x < img.Bounds().Dx(); x++ {
+			if bm[y][x] != 0 {
+				colorID := bm[y][x] / 10
+				c := colors[colorID]
+				pos := y * src.Stride + x * 4
+
+				src.Pix[pos+0] = c[0]
+				src.Pix[pos+1] = c[1]
+				src.Pix[pos+2] = c[2]
+			}
+			//src.Set(x, y, color.RGBA{R: c[0], G: c[1], B: c[2]})
+		}
+	}
+	return src
+}
+
 func main() {
 	filename, level, err := prepareVars()
 	if err != nil {
@@ -354,14 +388,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	mx := GetBinMap(*imgGray)
-	o, _ := FindObjectsRec(mx)
+	bm := GetBinMap(*imgGray)
+	objects, _ := FindObjectsRec(bm)
 
-	//for k, v := range objects {
-	//	s, p, c, e, o := CalcCharacteristics(bm, v)
-	//	fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
-	//}
-	//
+	var squares []int
+	for k, v := range objects {
+		s, p, c, e, o := CalcCharacteristics(bm, v)
+		squares = append(squares, s)
+		fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
+	}
+
 	//var cors []Cor2C
 	//for _, coordinates := range objects {
 	//	for i, c := range coordinates {
@@ -387,7 +423,7 @@ func main() {
 	//}
 
 
-	//var mx = [][]byte{
+	//var bm = [][]byte{
 	//	{0,0,0,0,0,0,0,1,1,1},
 	//	{0,0,1,1,1,0,0,1,1,1},
 	//	{0,0,1,1,1,0,0,1,1,1},
@@ -409,18 +445,18 @@ func main() {
 	//	//{0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
 	//}
 
-	//o, _ := FindObjectsRec(mx)
+	//objects, _ := FindObjectsRec(bm)
 	//var points []Point
-	//for _, cors := range o {
+	//for _, cors := range objects {
 	//	for _, c := range cors {
 	//		points = append(points, Point{H: c.H, W: c.W, C: 0})
 	//	}
 	//}
 
-	var d clusters.Observations
-	for _, v :=  range o {
+	var d Observations1
+	for _, v :=  range objects {
 		for _, c := range v {
-			d = append(d, clusters.Coordinates{
+			d = append(d, Coordinates2{
 				float64(c.W),
 				float64(c.H),
 			})
@@ -429,29 +465,37 @@ func main() {
 
 	km := kmeans.New()
 
+	k := 8
+
 	var t byte = 1
-	cls, _ := km.Partition(d, 8)
+	cls, _ := km.Partition(d, k)
 	for _, c := range cls {
 		//fmt.Printf("%d Centered at (%.f, %.f)\n", i+1, c.Center[0], c.Center[1])
 		//fmt.Printf("Matching data points: %+v\n", c.Observations)
 		//
 		//fmt.Printf("Matching round points: ")
-		//for _, o := range c.Observations {
-		//	fmt.Printf("[%d %d] ", int(math.Round(o.Coordinates()[0])), int(math.Round(o.Coordinates()[1])))
+		//for _, objects := range c.Observations {
+		//	fmt.Printf("[%d %d] ", int(math.Round(objects.Coordinates2()[0])), int(math.Round(objects.Coordinates2()[1])))
 		//}
 		//fmt.Println("")
 
 		for _, o := range c.Observations {
 			h := o.Coordinates()[0]
 			w := o.Coordinates()[1]
-			mx[int(math.Round(w))][int(math.Round(h))] = t*10
+			bm[int(math.Round(w))][int(math.Round(h))] = t*10
 		}
 		t++
 	}
 
-	for j := 0; j < len(mx); j++ {
-		fmt.Println(mx[j])
+	imgRes := BinMapToImage(bm, *imgGray)
+	err = util.SavePNG(imgRes, path, filename, fmt.Sprintf("_bin_%d", k))
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	//for j := 0; j < len(bm); j++ {
+	//	fmt.Println(bm[j])
+	//}
 }
 
 //type Point struct {

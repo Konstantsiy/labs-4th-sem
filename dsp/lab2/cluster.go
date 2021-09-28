@@ -8,7 +8,7 @@ import (
 
 // A Cluster which data points gravitate around
 type Cluster struct {
-	Center       Coordinates
+	Center       Coordinates2
 	Observations Observations
 }
 
@@ -27,7 +27,7 @@ func NewCluster(k int, dataset Observations) (Clusters, error) {
 
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < k; i++ {
-		var p Coordinates
+		var p Coordinates2
 		for j := 0; j < len(dataset[0].Coordinates()); j++ {
 			p = append(p, rand.Float64())
 		}
@@ -40,12 +40,12 @@ func NewCluster(k int, dataset Observations) (Clusters, error) {
 }
 
 // Append adds an observation to the Cluster
-func (c *Cluster) Append(point Observation) {
+func (c *Cluster) Append(point Observation1) {
 	c.Observations = append(c.Observations, point)
 }
 
 // Nearest returns the index of the cluster nearest to point
-func (c Clusters) Nearest(point Observation) int {
+func (c Clusters) Nearest(point Observation1) int {
 	var ci int
 	dist := -1.0
 
@@ -62,7 +62,7 @@ func (c Clusters) Nearest(point Observation) int {
 }
 
 // Neighbour returns the neighbouring cluster of a point along with the average distance to its points
-func (c Clusters) Neighbour(point Observation, fromCluster int) (int, float64) {
+func (c Clusters) Neighbour(point Observation1, fromCluster int) (int, float64) {
 	var d float64
 	nc := -1
 
@@ -106,7 +106,7 @@ func (c Clusters) Reset() {
 }
 
 // PointsInDimension returns all coordinates in a given dimension
-func (c Cluster) PointsInDimension(n int) Coordinates {
+func (c Cluster) PointsInDimension(n int) Coordinates2 {
 	var v []float64
 	for _, p := range c.Observations {
 		v = append(v, p.Coordinates()[n])
@@ -116,7 +116,7 @@ func (c Cluster) PointsInDimension(n int) Coordinates {
 
 // CentersInDimension returns all cluster centroids' coordinates in a given
 // dimension
-func (c Clusters) CentersInDimension(n int) Coordinates {
+func (c Clusters) CentersInDimension(n int) Coordinates2 {
 	var v []float64
 	for _, cl := range c {
 		v = append(v, cl.Center[n])
