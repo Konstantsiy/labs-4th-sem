@@ -14,8 +14,8 @@ type Observation1 interface {
 	Distance(point Coordinates2) float64
 }
 
-// Observations is a slice of observations
-type Observations []Observation1
+// Observations1 is a slice of observations
+type Observations1 []Observation1
 
 // Coordinates2 implements the Observation1 interface for a plain set of float64
 // coordinates
@@ -32,8 +32,8 @@ func (c Coordinates2) Distance(p2 Coordinates2) float64 {
 	return r
 }
 
-// Center returns the center coordinates of a set of Observations
-func (c Observations) Center() (Coordinates2, error) {
+// Center returns the center coordinates of a set of Observations1
+func (c Observations1) Center() (Coordinates2, error) {
 	var l = len(c)
 	if l == 0 {
 		return nil, fmt.Errorf("there is no mean for an empty set of points")
@@ -54,7 +54,7 @@ func (c Observations) Center() (Coordinates2, error) {
 }
 
 // AverageDistance returns the average distance between o and all observations
-func AverageDistance(o Observation1, observations Observations) float64 {
+func AverageDistance(o Observation1, observations Observations1) float64 {
 	var d float64
 	var l int
 

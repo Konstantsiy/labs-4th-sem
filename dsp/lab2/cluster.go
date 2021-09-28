@@ -9,14 +9,14 @@ import (
 // A Cluster which data points gravitate around
 type Cluster struct {
 	Center       Coordinates2
-	Observations Observations
+	Observations Observations1
 }
 
 // Clusters is a slice of clusters
 type Clusters []Cluster
 
-// New sets up a new set of clusters and randomly seeds their initial positions
-func NewCluster(k int, dataset Observations) (Clusters, error) {
+// NewKMeans sets up a new set of clusters and randomly seeds their initial positions
+func NewCluster(k int, dataset Observations1) (Clusters, error) {
 	var c Clusters
 	if len(dataset) == 0 || len(dataset[0].Coordinates()) == 0 {
 		return c, fmt.Errorf("there must be at least one dimension in the data set")
@@ -101,7 +101,7 @@ func (c Clusters) Recenter() {
 // Reset clears all point assignments
 func (c Clusters) Reset() {
 	for i := 0; i < len(c); i++ {
-		c[i].Observations = Observations{}
+		c[i].Observations = Observations1{}
 	}
 }
 

@@ -35,15 +35,15 @@ func NewWithOptions(deltaThreshold float64, plotter Plotter) (Kmeans, error) {
 	}, nil
 }
 
-// New returns a Kmeans configuration struct with default settings
-func New() Kmeans {
+// NewKMeans returns a Kmeans configuration struct with default settings
+func NewKMeans() Kmeans {
 	m, _ := NewWithOptions(0.01, nil)
 	return m
 }
 
 // Partition executes the k-means algorithm on the given dataset and
 // partitions it into k clusters
-func (m Kmeans) Partition(dataset Observations, k int) (Clusters, error) {
+func (m Kmeans) Partition(dataset Observations1, k int) (Clusters, error) {
 	if k > len(dataset) {
 		return Clusters{}, fmt.Errorf("the size of the data set must at least equal k")
 	}
