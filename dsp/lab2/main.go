@@ -3,11 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/util"
-	"github.com/anthonynsimon/bild/blur"
 	"github.com/anthonynsimon/bild/imgio"
-	"github.com/anthonynsimon/bild/segment"
-	"log"
-
 	//"github.com/anthonynsimon/bild/blur"
 	"github.com/anthonynsimon/bild/clone"
 	//"github.com/anthonynsimon/bild/imgio"
@@ -347,7 +343,7 @@ func BinMapToImage(bm [][]byte, img image.Gray) image.Image {
 	for y := 0; y < img.Bounds().Dy(); y++ {
 		for x := 0; x < img.Bounds().Dx(); x++ {
 			if bm[y][x] != 0 {
-				colorID := bm[y][x] / 10
+				colorID := bm[y][x]
 				c := colors[colorID]
 				pos := y * src.Stride + x * 4
 
@@ -366,55 +362,47 @@ type ObjectCharacteristic struct {
 }
 
 func main() {
-	filename, level, k, err := prepareVars()
-	if err != nil {
-		log.Fatal(err)
-	}
+	filename, level, k, _ := prepareVars() // парсинг аргументов: имя файла, уровень бинаризации, кол-во кластеров
 
-	curDir, _ := os.Getwd()
+	curDir, _ := os.Getwd() // получение текущей папки проекта
 	path := curDir+"/dsp/lab2/images/"
 
-	img, err := imgio.Open(path+filename+".jpg")
-	if err != nil {
-		log.Fatal(err)
-	}
+	img, _ := imgio.Open(path+filename+".jpg")
 
-	binImg := BinarizeImageWithLevel(img, level)
-	err = util.SavePNG(binImg, path, filename, "bin_1")
-	if err != nil {
-		log.Fatal(err)
-	}
+	binImg := BinarizeImageWithLevel(img, level) // бинаризация изображения по заданному уровню (default = 200)
+	util.SavePNG(binImg, path, filename, "bin_1")
 
-	img = blur.Gaussian(img, 3.3)
-	imgGray := segment.Threshold(img, level)
-	err = util.SavePNG(imgGray, path, filename, "bin_2")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// избавление от шума + бинаризация (сравнение с простой бинаризацией)
+	img = GaussianBlur(img, 3.3) // применение размытия по Гауссу к исходному изображению
+	imgGray := BinarizeImageWithLevel(img, level)
+	util.SavePNG(imgGray, path, filename, "bin_2")
 
-	bm := GetBinMap(*imgGray)
-	objects, _ := FindObjectsRec(bm)
+	bm := GetBinMap(*imgGray) // получение бинарной матрицы изображения
+	objects, _ := FindObjectsRec(bm) // рекурсивный поиск объектов на бинарной матрице
 
 	var obj_chars []ObjectCharacteristic
 	for k, v := range objects {
-		s, p, c, e, o := CalcCharacteristics(bm, v)
+		s, p, c, e, o := CalcCharacteristics(bm, v) // вычисдение геометрических характеристик объектов
 		fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
 		obj_chars = append(obj_chars, ObjectCharacteristic{ObjectID: k, Ch: Characteristic{Square: s, Perimeter: p}})
 	}
 
+	// в кластеризации объектов учитывается 2 геометрических признака: площадь и объем объекта,
+	// соответственно, выделяем данные признаки с каждого объекта в качестве координат (x, y)
 	var d clusters.Observations
 	for _, ch := range obj_chars {
 		d = append(d, clusters.Coordinates{float64(ch.Ch.Square), float64(ch.Ch.Perimeter)})
 	}
-	fmt.Println("")
 
 	km := kmeans.New()
+	cls, _ := km.Partition(d, k) // кластерный анализ и получение массива кластеров (алгоритм представлен ниже)
 
-	cls, _ := km.Partition(d, k)
-	for i, cl := range cls {
+	for i, cl := range cls { // отображение координат центров кластеров
 		fmt.Printf("%d centered at (%.f, %.f)\n", i+1, cl.Center[0], cl.Center[1])
 	}
 
+	// привязываем объект к соответствующему сластеру, чтобы раскрасить все точки,
+	// принадлежащие данному объекту, в уникальный цвет
 	objects_colors := make(map[byte]int)
 	for _, ob_ch := range obj_chars {
 		for cl_i, cl := range cls {
@@ -422,17 +410,14 @@ func main() {
 				sq := int(math.Round(obs.Coordinates()[0]))
 				per := int(math.Round(obs.Coordinates()[1]))
 				if ob_ch.Ch.Square == sq && ob_ch.Ch.Perimeter == per {
-					objects_colors[ob_ch.ObjectID] = (cl_i+1)*10
+					objects_colors[ob_ch.ObjectID] = cl_i+1
 					break
 				}
 			}
 		}
 	}
 
-	for o_k, v := range objects_colors {
-		fmt.Printf("k: %d, clolor: %d\n", o_k, v)
-	}
-
+	// заполнение бинарной матрицы, исходя из раскраски объектов (их принадлежности опрделенному кластеру)
 	for obj_k, cors := range objects {
 		if color_i, ok := objects_colors[obj_k]; ok {
 			for _, c := range cors {
@@ -441,9 +426,6 @@ func main() {
 		}
 	}
 
-	imgRes := BinMapToImage(bm, *imgGray)
-	err = util.SavePNG(imgRes, path, filename, "bin_3")
-	if err != nil {
-		log.Fatal(err)
-	}
+	imgRes := BinMapToImage(bm, *imgGray) // нанесение бинарной матрицы на ранее обработанное черно-белое изображение
+	util.SavePNG(imgRes, path, filename, "bin_3")
 }
