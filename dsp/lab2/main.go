@@ -1,28 +1,23 @@
 package main
-//
-//import (
-//	"fmt"
-//	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/util"
-//	"github.com/anthonynsimon/bild/blur"
-//	"github.com/anthonynsimon/bild/imgio"
-//	"github.com/anthonynsimon/bild/segment"
-//
-//	//"github.com/anthonynsimon/bild/blur"
-//	"github.com/anthonynsimon/bild/clone"
-//	//"github.com/anthonynsimon/bild/imgio"
-//	//"github.com/anthonynsimon/bild/segment"
-//	"github.com/muesli/clusters"
-//	"github.com/muesli/kmeans"
-//	//"math/rand"
-//
-//	"image"
-//	"image/color"
-//	"image/draw"
-//	"math"
-//	"os"
-//	"strconv"
-//)
-//
+
+import (
+	"fmt"
+	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/util"
+
+	"github.com/anthonynsimon/bild/blur"
+	"github.com/anthonynsimon/bild/clone"
+	"github.com/anthonynsimon/bild/imgio"
+	"github.com/anthonynsimon/bild/segment"
+	"github.com/muesli/clusters"
+	"github.com/muesli/kmeans"
+	//"math/rand"
+
+	"image"
+	"image/color"
+	"math"
+	"os"
+)
+
 //const (
 //	ColorBlack = 0x00
 //	ColorWhite = 0xFF
@@ -48,7 +43,6 @@ package main
 //	{175, 0, 175},
 //	{0, 175, 175},
 //}
-//
 //func prepareVars() (string, uint8, int, error) {
 //	args := os.Args
 //
@@ -58,124 +52,92 @@ package main
 //
 //	return filename, uint8(level), k, nil
 //}
-//
 //func AsRGBA(src image.Image) *image.RGBA {
 //	bounds := src.Bounds()
 //	res := image.NewRGBA(bounds)
 //	draw.Draw(res, bounds, src, bounds.Min, draw.Src)
 //	return res
 //}
-//
-//func BinarizeImage1(img image.Image, level uint8) (*image.Gray, [][]byte) {
-//	src := AsRGBA(img)
-//	bounds := img.Bounds()
-//	result := image.NewGray(bounds)
-//
-//	binMap := make([][]byte, bounds.Dy())
-//
-//	for y := 0; y < bounds.Dy(); y++ {
-//		binMap[y] = make([]byte, bounds.Dx())
-//		for x := 0; x < bounds.Dx(); x++ {
-//			srcPos := y * src.Stride + x * 4
-//			resPos := y * result.Stride + x
-//
-//			c := src.Pix[srcPos : srcPos+4]
-//
-//			r := float64(c[0])*0.3 + float64(c[1])*0.6 + float64(c[2])*0.1
-//
-//			if uint8(r) >= level {
-//				result.Pix[resPos] = ColorWhite
-//				binMap[y][x] = 1
-//			} else {
-//				result.Pix[resPos] = ColorBlack
-//				binMap[y][x] = 0
-//			}
-//		}
-//	}
-//
-//	return result, binMap
-//}
-//
 //type Coordinate struct {
 //	H int
 //	W int
 //}
-//
+
 //type Coordinates []Coordinate
-//
-//func FindObjects(binMap [][]byte) (map[byte]Coordinates, [][]byte) {
-//	height, width := len(binMap), len(binMap[0])
-//	objects := make(map[byte]Coordinates)
-//	var cur byte
-//	var A, B, C byte
-//	for i := 0; i < height; i++ {
-//		for j := 0; j < width; j++ {
-//			kn := j - 1
-//			if kn <= 0 {
-//				kn = 1
-//				B = 0
-//			} else {
-//				B = binMap[i][kn]
-//			}
-//			km := i - 1
-//			if km <= 0 {
-//				km = 1
-//				C = 0
-//			} else {
-//				C = binMap[km][j]
-//			}
-//			A = binMap[i][j]
-//			if A == 0 {
-//			} else if B == 0 && C == 0 {
-//				if len(objects) == 0 {
-//					cur = A
-//				} else {
-//					var m byte
-//					for k, _ := range objects {
-//						m = k
-//					}
-//					cur = m + 1
-//				}
-//				binMap[i][j] = cur
-//				if _, ok := objects[cur]; !ok {
-//					objects[cur] = Coordinates{}
-//				}
-//				objects[cur] = append(objects[cur], Coordinate{H: i, W: j})
-//			} else if B != 0 && C == 0 {
-//				binMap[i][j] = B
-//				if _, ok := objects[B]; !ok {
-//					objects[B] = Coordinates{}
-//				}
-//				objects[B] = append(objects[B], Coordinate{H: i, W: j})
-//			} else if B == 0 && C != 0 {
-//				binMap[i][j] = C
-//				if _, ok := objects[C]; !ok {
-//					objects[C] = Coordinates{}
-//				}
-//				objects[C] = append(objects[C], Coordinate{H: i, W: j})
-//			} else if B != 0 && C != 0 {
-//				binMap[i][j] = B
-//				if _, ok := objects[B]; !ok {
-//					objects[B] = Coordinates{}
-//				}
-//				objects[B] = append(objects[B], Coordinate{H: i, W: j})
-//				if B != C {
-//					if _, ok := objects[C]; ok {
-//						for _, cor := range objects[C] {
-//							binMap[cor.H][cor.W] = B
-//						}
-//						for _, cor := range objects[C] {
-//							objects[B] = append(objects[B], cor)
-//						}
-//						delete(objects, C)
-//					}
-//				}
-//			}
-//		}
-//	}
-//	return objects, binMap
-//}
-//
+
+func FindObjects(binMap [][]byte) (map[byte]Coordinates, [][]byte) {
+	height, width := len(binMap), len(binMap[0])
+	objects := make(map[byte]Coordinates)
+	var cur byte
+	var A, B, C byte
+	for i := 0; i < height; i++ {
+		for j := 0; j < width; j++ {
+			kn := j - 1
+			if kn <= 0 {
+				kn = 1
+				B = 0
+			} else {
+				B = binMap[i][kn]
+			}
+			km := i - 1
+			if km <= 0 {
+				km = 1
+				C = 0
+			} else {
+				C = binMap[km][j]
+			}
+			A = binMap[i][j]
+			if A == 0 {
+			} else if B == 0 && C == 0 {
+				if len(objects) == 0 {
+					cur = A
+				} else {
+					var m byte
+					for k, _ := range objects {
+						m = k
+					}
+					cur = m + 1
+				}
+				binMap[i][j] = cur
+				if _, ok := objects[cur]; !ok {
+					objects[cur] = Coordinates{}
+				}
+				objects[cur] = append(objects[cur], Coordinate{H: i, W: j})
+			} else if B != 0 && C == 0 {
+				binMap[i][j] = B
+				if _, ok := objects[B]; !ok {
+					objects[B] = Coordinates{}
+				}
+				objects[B] = append(objects[B], Coordinate{H: i, W: j})
+			} else if B == 0 && C != 0 {
+				binMap[i][j] = C
+				if _, ok := objects[C]; !ok {
+					objects[C] = Coordinates{}
+				}
+				objects[C] = append(objects[C], Coordinate{H: i, W: j})
+			} else if B != 0 && C != 0 {
+				binMap[i][j] = B
+				if _, ok := objects[B]; !ok {
+					objects[B] = Coordinates{}
+				}
+				objects[B] = append(objects[B], Coordinate{H: i, W: j})
+				if B != C {
+					if _, ok := objects[C]; ok {
+						for _, cor := range objects[C] {
+							binMap[cor.H][cor.W] = B
+						}
+						for _, cor := range objects[C] {
+							objects[B] = append(objects[B], cor)
+						}
+						delete(objects, C)
+					}
+				}
+			}
+		}
+	}
+	return objects, binMap
+}
+
 //func moment(i, j int, wMean, hMean float64, coordinates Coordinates) float64 {
 //	var result float64
 //	for _, c := range coordinates {
@@ -183,7 +145,6 @@ package main
 //	}
 //	return result
 //}
-//
 //func CalcCharacteristics(bm [][]byte, coordinates Coordinates) (int, int, float64, float64, float64) {
 //	square := len(coordinates)
 //	perimeter := CalcPerim(bm, coordinates)
@@ -209,7 +170,6 @@ package main
 //
 //	return square, perimeter, compact, elongation, orientation
 //}
-//
 //func BinarizeImageWithLevel(img image.Image, level uint8) *image.RGBA {
 //	src := AsRGBA(img)
 //	for y := 0; y < src.Bounds().Dy(); y++ {
@@ -226,44 +186,44 @@ package main
 //	}
 //	return src
 //}
-//
-//func Binarization(img image.Image, level uint8) (*image.Gray, [][]byte) {
-//	src := clone.AsRGBA(img)
-//	bounds := src.Bounds()
-//
-//	dst := image.NewGray(bounds)
-//
-//	binMap := make([][]byte, bounds.Dy())
-//
-//	for y := 0; y < bounds.Dy(); y++ {
-//		binMap[y] = make([]byte, bounds.Dx())
-//		for x := 0; x < bounds.Dx(); x++ {
-//			srcPos := y*src.Stride + x*4
-//			dstPos := y*dst.Stride + x
-//
-//			c := src.Pix[srcPos : srcPos+4]
-//			r := util.Rank(color.RGBA{c[0], c[1], c[2], c[3]})
-//
-//			// transparent pixel is always white
-//			if c[0] == 0 && c[1] == 0 && c[2] == 0 && c[3] == 0 {
-//				dst.Pix[dstPos] = 0xFF
-//				binMap[y][x] = 0
-//				continue
-//			}
-//
-//			if uint8(r) >= level {
-//				dst.Pix[dstPos] = 0xFF
-//				binMap[y][x] = 1
-//			} else {
-//				dst.Pix[dstPos] = 0x00
-//				binMap[y][x] = 0
-//			}
-//		}
-//	}
-//
-//	return dst, binMap
-//}
-//
+
+func Binarization(img image.Image, level uint8) (*image.Gray, [][]byte) {
+	src := clone.AsRGBA(img)
+	bounds := src.Bounds()
+
+	dst := image.NewGray(bounds)
+
+	binMap := make([][]byte, bounds.Dy())
+
+	for y := 0; y < bounds.Dy(); y++ {
+		binMap[y] = make([]byte, bounds.Dx())
+		for x := 0; x < bounds.Dx(); x++ {
+			srcPos := y*src.Stride + x*4
+			dstPos := y*dst.Stride + x
+
+			c := src.Pix[srcPos : srcPos+4]
+			r := util.Rank(color.RGBA{c[0], c[1], c[2], c[3]})
+
+			// transparent pixel is always white
+			if c[0] == 0 && c[1] == 0 && c[2] == 0 && c[3] == 0 {
+				dst.Pix[dstPos] = 0xFF
+				binMap[y][x] = 0
+				continue
+			}
+
+			if uint8(r) >= level {
+				dst.Pix[dstPos] = 0xFF
+				binMap[y][x] = 1
+			} else {
+				dst.Pix[dstPos] = 0x00
+				binMap[y][x] = 0
+			}
+		}
+	}
+
+	return dst, binMap
+}
+
 //func GetBinMap(img image.Gray) [][]byte {
 //	bounds := img.Bounds()
 //	binMap := make([][]byte, bounds.Dy())
@@ -283,7 +243,7 @@ package main
 //
 //	return binMap
 //}
-//
+
 //func fill(bm [][]byte, x, y int, c byte, objects map[byte]Coordinates) {
 //	if bm[x][y] == 1 {
 //		bm[x][y] = c
@@ -310,7 +270,7 @@ package main
 //	Square int
 //	Perimeter int
 //}
-//
+
 //func FindObjectsRec(bm [][]byte) (map[byte]Coordinates, [][]byte) {
 //	objects := make(map[byte]Coordinates)
 //	var c byte = 1
@@ -322,7 +282,7 @@ package main
 //	}
 //	return objects, bm
 //}
-//
+
 //func isBoundary(bm [][]byte, h, w int) bool {
 //	if h == 0 || h == len(bm)-1 || w == 0 || w == len(bm[0])-1 {
 //		return true
@@ -358,80 +318,80 @@ package main
 //	}
 //	return src
 //}
-//
+
 //type ObjectCharacteristic struct {
 //	Ch       Characteristic
 //	ObjectID byte
 //}
-//
-//func main() {
-//	filename, level, k, _ := prepareVars() // парсинг аргументов: имя файла, уровень бинаризации, кол-во кластеров
-//
-//	curDir, _ := os.Getwd() // получение текущей папки проекта
-//	path := curDir+"/dsp/lab2/images/"
-//
-//	img, _ := imgio.Open(path+filename+".jpg")
-//
-//	binImg := BinarizeImageWithLevel(img, level) // бинаризация изображения по заданному уровню (default = 200)
-//	util.SavePNG(binImg, path, filename, "bin_1")
-//
-//	// избавление от шума + бинаризация (сравнение с простой бинаризацией)
-//	img = blur.Gaussian(img, 3.3) // применение размытия по Гауссу к исходному изображению
-//	imgGray := segment.Threshold(img, level)
-//	util.SavePNG(imgGray, path, filename, "bin_2")
-//
-//	bm := GetBinMap(*imgGray) // получение бинарной матрицы изображения
-//	objects, _ := FindObjectsRec(bm) // рекурсивный поиск объектов на бинарной матрице
-//
-//	var obj_chars []ObjectCharacteristic
-//	for k, v := range objects {
-//		s, p, c, e, o := CalcCharacteristics(bm, v) // вычисдение геометрических характеристик объектов
-//		fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
-//		obj_chars = append(obj_chars, ObjectCharacteristic{ObjectID: k, Ch: Characteristic{Square: s, Perimeter: p}})
-//	}
-//
-//	// в кластеризации объектов учитывается 2 геометрических признака: площадь и объем объекта,
-//	// соответственно, выделяем данные признаки с каждого объекта в качестве координат (x, y)
-//	var d clusters.Observations
-//	for _, ch := range obj_chars {
-//		d = append(d, clusters.Coordinates{float64(ch.Ch.Square), float64(ch.Ch.Perimeter)})
-//	}
-//
-//	km := kmeans.New()
-//	cls, _ := km.Partition(d, k) // кластерный анализ и получение массива кластеров (алгоритм представлен ниже)
-//
-//	for i, cl := range cls { // отображение координат центров кластеров
-//		fmt.Printf("%d centered at (%.f, %.f)\n", i+1, cl.Center[0], cl.Center[1])
-//	}
-//
-//	// привязываем объект к соответствующему сластеру, чтобы раскрасить все точки,
-//	// принадлежащие данному объекту, в уникальный цвет
-//	objects_colors := make(map[byte]int)
-//	for _, ob_ch := range obj_chars {
-//		for cl_i, cl := range cls {
-//			for _, obs := range cl.Observations {
-//				sq := int(math.Round(obs.Coordinates()[0]))
-//				per := int(math.Round(obs.Coordinates()[1]))
-//				if ob_ch.Ch.Square == sq && ob_ch.Ch.Perimeter == per {
-//					objects_colors[ob_ch.ObjectID] = cl_i+1
-//					break
-//				}
-//			}
-//		}
-//	}
-//
-//	// заполнение бинарной матрицы, исходя из раскраски объектов (их принадлежности опрделенному кластеру)
-//	for obj_k, cors := range objects {
-//		if color_i, ok := objects_colors[obj_k]; ok {
-//			for _, c := range cors {
-//				bm[c.H][c.W] = byte(color_i)
-//			}
-//		}
-//	}
-//
-//	imgRes := BinMapToImage(bm, *imgGray) // нанесение бинарной матрицы на ранее обработанное черно-белое изображение
-//	util.SavePNG(imgRes, path, filename, "bin_3")
-//}
-//
-//
-//
+
+func main() {
+	filename, level, k, _ := prepareVars() // парсинг аргументов: имя файла, уровень бинаризации, кол-во кластеров
+
+	curDir, _ := os.Getwd() // получение текущей папки проекта
+	path := curDir+"/dsp/lab2/images/"
+
+	img, _ := imgio.Open(path+filename+".jpg")
+
+	binImg := BinarizeImageWithLevel(img, level) // бинаризация изображения по заданному уровню (default = 200)
+	util.SavePNG(binImg, path, filename, "bin_1")
+
+	// избавление от шума + бинаризация (сравнение с простой бинаризацией)
+	img = blur.Gaussian(img, 3.3) // применение размытия по Гауссу к исходному изображению
+	imgGray := segment.Threshold(img, level)
+	util.SavePNG(imgGray, path, filename, "bin_2")
+
+	bm := GetBinMap(*imgGray) // получение бинарной матрицы изображения
+	objects, _ := FindObjectsRec(bm) // рекурсивный поиск объектов на бинарной матрице
+
+	var obj_chars []ObjectCharacteristic
+	for k, v := range objects {
+		s, p, c, e, o := CalcCharacteristics(bm, v) // вычисдение геометрических характеристик объектов
+		fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
+		obj_chars = append(obj_chars, ObjectCharacteristic{ObjectID: k, Ch: Characteristic{Square: s, Perimeter: p}})
+	}
+
+	// в кластеризации объектов учитывается 2 геометрических признака: площадь и объем объекта,
+	// соответственно, выделяем данные признаки с каждого объекта в качестве координат (x, y)
+	var d clusters.Observations
+	for _, ch := range obj_chars {
+		d = append(d, clusters.Coordinates{float64(ch.Ch.Square), float64(ch.Ch.Perimeter)})
+	}
+
+	km := kmeans.New()
+	cls, _ := km.Partition(d, k) // кластерный анализ и получение массива кластеров (алгоритм представлен ниже)
+
+	for i, cl := range cls { // отображение координат центров кластеров
+		fmt.Printf("%d centered at (%.f, %.f)\n", i+1, cl.Center[0], cl.Center[1])
+	}
+
+	// привязываем объект к соответствующему сластеру, чтобы раскрасить все точки,
+	// принадлежащие данному объекту, в уникальный цвет
+	objects_colors := make(map[byte]int)
+	for _, ob_ch := range obj_chars {
+		for cl_i, cl := range cls {
+			for _, obs := range cl.Observations {
+				sq := int(math.Round(obs.Coordinates()[0]))
+				per := int(math.Round(obs.Coordinates()[1]))
+				if ob_ch.Ch.Square == sq && ob_ch.Ch.Perimeter == per {
+					objects_colors[ob_ch.ObjectID] = cl_i+1
+					break
+				}
+			}
+		}
+	}
+
+	// заполнение бинарной матрицы, исходя из раскраски объектов (их принадлежности опрделенному кластеру)
+	for obj_k, cors := range objects {
+		if color_i, ok := objects_colors[obj_k]; ok {
+			for _, c := range cors {
+				bm[c.H][c.W] = byte(color_i)
+			}
+		}
+	}
+
+	imgRes := BinMapToImage(bm, *imgGray) // нанесение бинарной матрицы на ранее обработанное черно-белое изображение
+	util.SavePNG(imgRes, path, filename, "bin_3")
+}
+
+
+

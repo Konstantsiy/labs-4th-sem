@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/Konstantsiy/labs-4th-sem/dsp/lab1/util"
+	"github.com/anthonynsimon/bild/blur"
 	"github.com/anthonynsimon/bild/clone"
-	"github.com/muesli/kmeans"
+	"github.com/anthonynsimon/bild/imgio"
+	"github.com/anthonynsimon/bild/segment"
+	"github.com/sirupsen/logrus"
 	"image"
 	"image/color"
 	"image/draw"
@@ -58,36 +61,6 @@ func AsRGBA(src image.Image) *image.RGBA {
 	return res
 }
 
-func BinarizeImage1(img image.Image, level uint8) (*image.Gray, [][]byte) {
-	src := AsRGBA(img)
-	bounds := img.Bounds()
-	result := image.NewGray(bounds)
-
-	binMap := make([][]byte, bounds.Dy())
-
-	for y := 0; y < bounds.Dy(); y++ {
-		binMap[y] = make([]byte, bounds.Dx())
-		for x := 0; x < bounds.Dx(); x++ {
-			srcPos := y * src.Stride + x * 4
-			resPos := y * result.Stride + x
-
-			c := src.Pix[srcPos : srcPos+4]
-
-			r := float64(c[0])*0.3 + float64(c[1])*0.6 + float64(c[2])*0.1
-
-			if uint8(r) >= level {
-				result.Pix[resPos] = ColorWhite
-				binMap[y][x] = 1
-			} else {
-				result.Pix[resPos] = ColorBlack
-				binMap[y][x] = 0
-			}
-		}
-	}
-
-	return result, binMap
-}
-
 type Coordinate struct {
 	H int
 	W int
@@ -95,85 +68,90 @@ type Coordinate struct {
 
 type Coordinates []Coordinate
 
-func FindObjects(binMap [][]byte) (map[byte]Coordinates, [][]byte) {
-	height, width := len(binMap), len(binMap[0])
-	objects := make(map[byte]Coordinates)
-	var cur byte
-	var A, B, C byte
-	for i := 0; i < height; i++ {
-		for j := 0; j < width; j++ {
-			kn := j - 1
-			if kn <= 0 {
-				kn = 1
-				B = 0
-			} else {
-				B = binMap[i][kn]
-			}
-			km := i - 1
-			if km <= 0 {
-				km = 1
-				C = 0
-			} else {
-				C = binMap[km][j]
-			}
-			A = binMap[i][j]
-			if A == 0 {
-			} else if B == 0 && C == 0 {
-				if len(objects) == 0 {
-					cur = A
-				} else {
-					var m byte
-					for k, _ := range objects {
-						m = k
-					}
-					cur = m + 1
-				}
-				binMap[i][j] = cur
-				if _, ok := objects[cur]; !ok {
-					objects[cur] = Coordinates{}
-				}
-				objects[cur] = append(objects[cur], Coordinate{H: i, W: j})
-			} else if B != 0 && C == 0 {
-				binMap[i][j] = B
-				if _, ok := objects[B]; !ok {
-					objects[B] = Coordinates{}
-				}
-				objects[B] = append(objects[B], Coordinate{H: i, W: j})
-			} else if B == 0 && C != 0 {
-				binMap[i][j] = C
-				if _, ok := objects[C]; !ok {
-					objects[C] = Coordinates{}
-				}
-				objects[C] = append(objects[C], Coordinate{H: i, W: j})
-			} else if B != 0 && C != 0 {
-				binMap[i][j] = B
-				if _, ok := objects[B]; !ok {
-					objects[B] = Coordinates{}
-				}
-				objects[B] = append(objects[B], Coordinate{H: i, W: j})
-				if B != C {
-					if _, ok := objects[C]; ok {
-						for _, cor := range objects[C] {
-							binMap[cor.H][cor.W] = B
-						}
-						for _, cor := range objects[C] {
-							objects[B] = append(objects[B], cor)
-						}
-						delete(objects, C)
-					}
-				}
-			}
-		}
-	}
-	return objects, binMap
-}
-
 func moment(i, j int, wMean, hMean float64, coordinates Coordinates) float64 {
 	var result float64
 	for _, c := range coordinates {
 		result += math.Pow(float64(c.W)-wMean, float64(i)) * math.Pow(float64(c.H)-hMean, float64(j))
 	}
 	return result
+}
+
+type RGB struct {
+	R float64
+	G float64
+	B float64
+}
+
+type Photometrics struct {
+	AverageRGB RGB
+	AverageGray float64
+	DispRGB RGB
+	DispGray float64
+}
+
+func CalcPhotometrics(img image.Image, coordinates Coordinates) Photometrics {
+	var rList, gList, bList []uint32
+	var grayList []float64
+	var rSum, gSum, bSum uint32
+	var graySum float64
+	for _, c := range coordinates {
+		r, g, b, _ := img.At(c.H, c.W).RGBA()
+		rSum += r
+		gSum += g
+		bSum += b
+
+		gray := 0.3 * float64(r) + 0.59 * float64(g) + 0.11 * float64(b)
+		graySum += gray
+
+		rList = append(rList, r)
+		gList = append(gList, g)
+		bList = append(bList, b)
+		grayList = append(grayList, gray)
+	}
+	rAve := float64(rSum) / float64(len(rList))
+	gAve := float64(gSum) / float64(len(gList))
+	bAve := float64(bSum) / float64(len(bList))
+	grayAve := graySum / float64(len(grayList))
+
+	rMin, rMax := GetMinMaxUint32(rList)
+	rDisp := rMax - rMin
+	gMin, gMax := GetMinMaxUint32(gList)
+	gDisp := gMax - gMin
+	bMin, bMax := GetMinMaxUint32(bList)
+	bDisp := bMax - bMin
+	grayMin, grayMax := GetMinMaxFloat64(grayList)
+	grayDisp := grayMax - grayMin
+
+	return Photometrics{
+		AverageRGB: RGB{R: rAve, G: gAve, B: bAve},
+		AverageGray: grayAve,
+		DispRGB: RGB{R: float64(rDisp), G: float64(gDisp), B: float64(bDisp)},
+		DispGray: grayDisp,
+	}
+}
+
+func GetMinMaxFloat64(arr []float64) (float64, float64) {
+	min, max := arr[0], arr[0]
+	for _, v := range arr {
+		if v < min {
+			min = v
+		} else if v > max {
+			max = v
+		}
+	}
+	return min, max
+}
+
+func GetMinMaxUint32(arr []uint32) (uint32, uint32) {
+	min, max := arr[0], arr[0]
+	for _, v := range arr {
+		if v < min {
+			min = v
+		} else if v > max {
+			max = v
+		}
+	}
+	return min, max
 }
 
 func CalcCharacteristics(bm [][]byte, coordinates Coordinates) (int, int, float64, float64, float64) {
@@ -202,6 +180,11 @@ func CalcCharacteristics(bm [][]byte, coordinates Coordinates) (int, int, float6
 	return square, perimeter, compact, elongation, orientation
 }
 
+type Characteristic struct {
+	Square int
+	Perimeter int
+}
+
 func BinarizeImageWithLevel(img image.Image, level uint8) *image.RGBA {
 	src := AsRGBA(img)
 	for y := 0; y < src.Bounds().Dy(); y++ {
@@ -219,16 +202,13 @@ func BinarizeImageWithLevel(img image.Image, level uint8) *image.RGBA {
 	return src
 }
 
-func Binarization(img image.Image, level uint8) (*image.Gray, [][]byte) {
+func Bin(img image.Image, level uint8) *image.Gray {
 	src := clone.AsRGBA(img)
 	bounds := src.Bounds()
 
 	dst := image.NewGray(bounds)
 
-	binMap := make([][]byte, bounds.Dy())
-
 	for y := 0; y < bounds.Dy(); y++ {
-		binMap[y] = make([]byte, bounds.Dx())
 		for x := 0; x < bounds.Dx(); x++ {
 			srcPos := y*src.Stride + x*4
 			dstPos := y*dst.Stride + x
@@ -239,21 +219,18 @@ func Binarization(img image.Image, level uint8) (*image.Gray, [][]byte) {
 			// transparent pixel is always white
 			if c[0] == 0 && c[1] == 0 && c[2] == 0 && c[3] == 0 {
 				dst.Pix[dstPos] = 0xFF
-				binMap[y][x] = 0
 				continue
 			}
 
 			if uint8(r) >= level {
 				dst.Pix[dstPos] = 0xFF
-				binMap[y][x] = 1
 			} else {
 				dst.Pix[dstPos] = 0x00
-				binMap[y][x] = 0
 			}
 		}
 	}
 
-	return dst, binMap
+	return dst
 }
 
 func GetBinMap(img image.Gray) [][]byte {
@@ -296,11 +273,6 @@ func fill(bm [][]byte, x, y int, c byte, objects map[byte]Coordinates) {
 			fill(bm, x, y + 1, c, objects)
 		}
 	}
-}
-
-type Characteristic struct {
-	Square int
-	Perimeter int
 }
 
 func FindObjectsRec(bm [][]byte) (map[byte]Coordinates, [][]byte) {
@@ -356,110 +328,6 @@ type ObjectCharacteristic struct {
 	ObjectID byte
 }
 
-func main() {
-	//filename, level, _, _ := prepareVars() // парсинг аргументов: имя файла, уровень бинаризации, кол-во кластеров
-	//
-	//curDir, _ := os.Getwd() // получение текущей папки проекта
-	//path := curDir+"/dsp/lab2/images/"
-	//
-	//img, _ := imgio.Open(path+filename+".jpg")
-	//
-	//binImg := BinarizeImageWithLevel(img, level) // бинаризация изображения по заданному уровню (default = 200)
-	//util.SavePNG(binImg, path, filename, "bin_1")
-	//
-	//// избавление от шума + бинаризация (сравнение с простой бинаризацией)
-	//img = blur.Gaussian(img, 3.3) // применение размытия по Гауссу к исходному изображению
-	//// todo
-	//imgGray := segment.Threshold(img, level)
-	//util.SavePNG(imgGray, path, filename, "bin_2")
-
-	//bm := GetBinMap(*imgGray) // получение бинарной матрицы изображения
-	var bm = [][]byte{
-		{1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0},
-		{1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0},
-		{1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0},
-		{0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0},
-		{0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0},
-		{0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0},
-		{0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0},
-		{0,0,0,0,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-	}
-	objects, _ := FindObjectsRec(bm) // рекурсивный поиск объектов на бинарной матрице
-
-	var obj_chars []ObjectCharacteristic
-	for k, v := range objects {
-		s, p, c, e, o := CalcCharacteristics(bm, v) // вычисдение геометрических характеристик объектов
-		fmt.Printf("k: %d \tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", k, s, p, c, e, o)
-		obj_chars = append(obj_chars, ObjectCharacteristic{ObjectID: k, Ch: Characteristic{Square: s, Perimeter: p}})
-	}
-
-	var dataset []Point
-	for _, o_ch := range obj_chars {
-		dataset = append(dataset, Point{float64(o_ch.Ch.Square), float64(o_ch.Ch.Perimeter)})
-	}
-
-	clusters := Run(dataset, 2)
-
-	for i, cl := range clusters { // отображение координат центров кластеров
-		fmt.Printf("%d centered at (%.f, %.f)\n", i+1, cl.Center.X, cl.Center.Y)
-		fmt.Print("points: ")
-		for _, p := range cl.Points {
-			fmt.Printf("(%.f, %.f) ", p.X, p.Y)
-		}
-		fmt.Print("\n")
-	}
-
-	// в кластеризации объектов учитывается 2 геометрических признака: площадь и объем объекта,
-	// соответственно, выделяем данные признаки с каждого объекта в качестве координат (x, y)
-	var d
-	for _, ch := range obj_chars {
-		d = append(d, clusters.Coordinates{float64(ch.Ch.Square), float64(ch.Ch.Perimeter)})
-	}
-
-	km := kmeans.New()
-	cls, _ := km.Partition(d, k) // кластерный анализ и получение массива кластеров (алгоритм представлен ниже)
-
-	for i, cl := range cls { // отображение координат центров кластеров
-		fmt.Printf("%d centered at (%.f, %.f)\n", i+1, cl.Center[0], cl.Center[1])
-	}
-
-	// привязываем объект к соответствующему сластеру, чтобы раскрасить все точки,
-	// принадлежащие данному объекту, в уникальный цвет
-	objects_colors := make(map[byte]int)
-	for _, ob_ch := range obj_chars {
-		for cl_i, cl := range cls {
-			for _, obs := range cl.Observations {
-				sq := int(math.Round(obs.Coordinates()[0]))
-				per := int(math.Round(obs.Coordinates()[1]))
-				if ob_ch.Ch.Square == sq && ob_ch.Ch.Perimeter == per {
-					objects_colors[ob_ch.ObjectID] = cl_i+1
-					break
-				}
-			}
-		}
-	}
-
-	// заполнение бинарной матрицы, исходя из раскраски объектов (их принадлежности опрделенному кластеру)
-	for obj_k, cors := range objects {
-		if color_i, ok := objects_colors[obj_k]; ok {
-			for _, c := range cors {
-				bm[c.H][c.W] = byte(color_i)
-			}
-		}
-	}
-
-	imgRes := BinMapToImage(bm, *imgGray) // нанесение бинарной матрицы на ранее обработанное черно-белое изображение
-	util.SavePNG(imgRes, path, filename, "bin_3")
-}
-
 type Cluster struct {
 	Center Point
 	Points []Point
@@ -468,29 +336,26 @@ type Cluster struct {
 func (cluster *Cluster) repositionCenter() {
 	var x, y float64
 	var clusterCount = len(cluster.Points)
-	fmt.Printf("cluster points count: %d\t", clusterCount)
+	//fmt.Printf("cluster points count: %d\t", clusterCount)
 
 	for i := 0; i < clusterCount; i++ {
 		x += cluster.Points[i].X
 		y += cluster.Points[i].Y
 	}
-	fmt.Printf("old center: %v\t", cluster.Center)
+	//fmt.Printf("old center: %v\t", cluster.Center)
 	cluster.Points = []Point{}
 	cluster.Center = Point{x / float64(clusterCount), y / float64(clusterCount)}
-	fmt.Printf("new center: %v\n", cluster.Center)
+	//fmt.Printf("new center: %v\n", cluster.Center)
 }
-// --------------------------------------------------------------------------------------------------------------
-//Point struct is a simple coordinate
+
 type Point struct {
 	X float64
 	Y float64
 }
 
-//Distance function calculates distance between two points in the cartesian plan
 func (p Point) Distance(p2 Point) float64 {
 	return math.Sqrt(math.Pow(p.X-p2.X, 2) + math.Pow(p.Y-p2.Y, 2))
 }
-// --------------------------------------------------------------------------------------------------------------
 
 func initClusters(dataset []Point, k int) []Cluster {
 	rand.Seed(time.Now().UnixNano())
@@ -510,13 +375,11 @@ func repositionCenters(clusters []Cluster) {
 	}
 }
 
-/*Run runs the k-means algorithm given an array of coordinates and a specific k. Returns a slice of Clusters defined
-by their Center (type Point) and a slice of Points representing points in that cluster.*/
-func Run(dataset []Point, k int) []Cluster {
+func RunKMeans(dataset []Point, k int) []Cluster {
 	pointsClusterIndex := make([]int, len(dataset))
 	clusters := initClusters(dataset, k)
-	fmt.Printf("initial clusters: %+v\n", clusters)
-
+	maxIter := 30
+	counter := 0
 	for hasChanged := true; hasChanged; {
 		hasChanged = false
 		for i := 0; i < len(dataset); i++ {
@@ -538,7 +401,93 @@ func Run(dataset []Point, k int) []Cluster {
 		if hasChanged {
 			repositionCenters(clusters)
 		}
+		counter++
+		if counter >= maxIter {
+			logrus.Info("exceeded the maximum number of iterations")
+			break
+		}
 	}
 	return clusters
 }
 
+func main() {
+	filename, level, k, _ := prepareVars() // парсинг аргументов: имя файла, уровень бинаризации, кол-во кластеров
+
+	curDir, _ := os.Getwd() // получение текущей папки проекта
+	path := curDir+"/dsp/lab2/images/"
+
+	src, _ := imgio.Open(path+filename+".jpg")
+
+	binImg := BinarizeImageWithLevel(src, level) // бинаризация изображения по заданному уровню (default = 200)
+	util.SavePNG(binImg, path, filename, "bin_1")
+
+	// избавление от шума + бинаризация (сравнение с простой бинаризацией)
+	img := blur.Gaussian(src, 3.3) // применение размытия по Гауссу к исходному изображению
+	imgGray := segment.Threshold(img, level)
+	util.SavePNG(imgGray, path, filename, "bin_2")
+
+	bm := GetBinMap(*imgGray) // получение бинарной матрицы изображения
+
+	objects, _ := FindObjectsRec(bm) // рекурсивный поиск объектов на бинарной матрице
+
+	// вычисдение геометрических характеристик и фотометрических признаков объектов
+	var obj_chars []ObjectCharacteristic
+	for k, v := range objects {
+		s, p, c, e, o := CalcCharacteristics(bm, v)
+		if s == 1 || p == 1 {
+			continue
+		}
+		fmt.Println("--------------------")
+		fmt.Printf("object id: %d\n", k)
+		fmt.Printf("geometric:\tsquare: %d \tperimeter: %d \tcompact: %.4f \telongation: %.4f \torientation: %.4f\n", s, p, c, e, o)
+
+		obj_chars = append(obj_chars, ObjectCharacteristic{ObjectID: k, Ch: Characteristic{Square: s, Perimeter: p}})
+		ph := CalcPhotometrics(src, v)
+		fmt.Printf("photometric:\taverage: (%.2f, %.2f, %.2f)\tgray average: %.2f\tdelta: (%.2f, %.2f, %.2f)\tgrey disp: %.2f\n",
+			ph.AverageRGB.R, ph.AverageRGB.G, ph.AverageRGB.B, ph.AverageGray,
+			ph.DispRGB.R, ph.DispRGB.G, ph.DispRGB.B, ph.DispGray)
+		fmt.Println("--------------------")
+	}
+
+	var dataset []Point
+	for _, o_ch := range obj_chars {
+		dataset = append(dataset, Point{float64(o_ch.Ch.Square), float64(o_ch.Ch.Perimeter)})
+	}
+
+	clusters := RunKMeans(dataset, k)
+
+	for i, cl := range clusters { // отображение координат центров кластеров
+		fmt.Printf("%d centered at (%.f, %.f)\n", i+1, cl.Center.X, cl.Center.Y)
+	}
+
+	fmt.Printf("count of objects: %d\n", len(objects))
+
+	// привязываем объект к соответствующему сластеру, чтобы раскрасить все точки,
+	// принадлежащие данному объекту, в уникальный цвет
+	objects_colors := make(map[byte]int)
+	for _, ob_ch := range obj_chars {
+		for cl_i, cl := range clusters {
+			for _, point := range cl.Points {
+				sq := int(math.Round(point.X))
+				per := int(math.Round(point.Y))
+				if ob_ch.Ch.Square == sq && ob_ch.Ch.Perimeter == per {
+					objects_colors[ob_ch.ObjectID] = cl_i+1
+					break
+				}
+			}
+		}
+	}
+
+	// заполнение бинарной матрицы, исходя из раскраски объектов (их принадлежности опрделенному кластеру)
+	for obj_k, cors := range objects {
+		if color_i, ok := objects_colors[obj_k]; ok {
+			for _, c := range cors {
+				bm[c.H][c.W] = byte(color_i)
+			}
+		}
+	}
+
+	// нанесение бинарной матрицы на ранее обработанное черно-белое изображение
+	imgRes := BinMapToImage(bm, *imgGray)
+	util.SavePNG(imgRes, path, filename, "bin_3")
+}
