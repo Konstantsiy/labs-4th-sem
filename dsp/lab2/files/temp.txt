@@ -1,0 +1,69 @@
+object id: 218
+geometric:      square: 25      perimeter: 15   compact: 9.00   elongation: 1.27        orientation: -0.36      mass center: (171.08, 317.04)
+photometric:    average: (18225.96, 22433.52, 31191.92) gray average: 22134.68  delta: (4369.00, 4369.00, 4445.00)      grey disp: 4369.11
+--------------------
+object id: 243
+geometric:      square: 118     perimeter: 39   compact: 12.89  elongation: 4.20        orientation: -0.03      mass center: (159.25, 390.58)
+photometric:    average: (18236.76, 22391.25, 31476.22) gray average: 22144.25  delta: (4626.00, 4626.00, 4626.00)      grey disp: 4626.00
+--------------------
+object id: 190
+geometric:      square: 529     perimeter: 79   compact: 11.80  elongation: 1.25        orientation: -0.18      mass center: (207.53, 488.51)
+photometric:    average: (0.00, 34678.00, 0.00) gray average: 20460.02  delta: (0.00, 0.00, 0.00)       grey disp: 0.00
+--------------------
+object id: 39
+geometric:      square: 2197    perimeter: 345  compact: 54.18  elongation: 33.28       orientation: -0.09      mass center: (130.45, 101.57)
+photometric:    average: (19750.81, 24265.69, 34020.75) gray average: 23984.28  delta: (63728.00, 59273.00, 54241.00)   grey disp: 60055.98
+--------------------
+object id: 20
+geometric:      square: 2366    perimeter: 354  compact: 52.97  elongation: 32.14       orientation: 0.03       mass center: (108.61, 511.29)
+photometric:    average: (835.69, 34110.76, 1450.44)    gray average: 20535.61  delta: (20210.00, 14897.00, 33488.00)   grey disp: 4883.65
+--------------------
+object id: 58
+geometric:      square: 80      perimeter: 27   compact: 9.11   elongation: 1.84        orientation: -0.36      mass center: (176.35, 300.73)
+photometric:    average: (17370.15, 21567.15, 30390.17) gray average: 21278.58  delta: (4112.00, 4112.00, 4113.00)      grey disp: 4112.11
+--------------------
+object id: 127
+geometric:      square: 513     perimeter: 78   compact: 11.86  elongation: 1.32        orientation: -0.11      mass center: (84.50, 338.84)
+photometric:    average: (15143.64, 19341.33, 28160.11) gray average: 19052.09  delta: (8738.00, 8738.00, 8738.00)      grey disp: 8738.00
+--------------------
+object id: 213
+geometric:      square: 848     perimeter: 118  compact: 16.42  elongation: 2.47        orientation: -0.17      mass center: (163.30, 415.81)
+photometric:    average: (5729.52, 30544.20, 9975.14)   gray average: 20837.20  delta: (20724.00, 16182.00, 33745.00)   grey disp: 6425.11
+--------------------
+object id: 244
+geometric:      square: 398     perimeter: 65   compact: 10.62  elongation: 1.03        orientation: -0.41      mass center: (228.17, 377.99)
+photometric:    average: (16886.69, 22194.38, 30775.72) gray average: 21546.02  delta: (13364.00, 13365.00, 13365.00)   grey disp: 13364.70
+--------------------
+object id: 2
+geometric:      square: 1020    perimeter: 129  compact: 16.31  elongation: 2.95        orientation: -0.61      mass center: (15.89, 13.35)
+photometric:    average: (52345.98, 59354.38, 63786.98) gray average: 57739.45  delta: (56847.00, 56453.00, 51459.00)   grey disp: 55960.66
+--------------------
+object id: 223
+geometric:      square: 2293    perimeter: 297  compact: 38.47  elongation: 29.50       orientation: 0.72       mass center: (102.72, 265.97)
+photometric:    average: (14592.53, 18689.93, 26148.55) gray average: 18281.16  delta: (25913.00, 28169.00, 32686.00)   grey disp: 27662.42
+--------------------
+object id: 140
+geometric:      square: 1167    perimeter: 121  compact: 12.55  elongation: 1.27        orientation: 0.53       mass center: (184.69, 263.44)
+photometric:    average: (15654.27, 19741.14, 28145.64) gray average: 19439.57  delta: (18093.00, 17374.00, 18640.00)   grey disp: 17728.96
+--------------------
+object id: 96
+geometric:      square: 2004    perimeter: 290  compact: 41.97  elongation: 27.94       orientation: -0.70      mass center: (288.53, 350.83)
+photometric:    average: (27948.63, 34662.46, 38415.69) gray average: 33061.17  delta: (64561.00, 64840.00, 65535.00)   grey disp: 63676.19
+--------------------
+object id: 70
+geometric:      square: 2       perimeter: 2    compact: 2.00   elongation: +Inf        orientation: -0.00      mass center: (168.00, 332.50)
+photometric:    average: (12371.50, 16656.50, 24938.50) gray average: 16282.02  delta: (2313.00, 2313.00, 2313.00)      grey disp: 2313.00
+--------------------
+object id: 102
+geometric:      square: 698     perimeter: 91   compact: 11.86  elongation: 1.55        orientation: 0.16       mass center: (204.80, 210.13)
+photometric:    average: (53710.07, 56761.38, 59337.96) gray average: 56129.41  delta: (65535.00, 64982.00, 59124.00)   grey disp: 64168.31
+--------------------
+object id: 118
+geometric:      square: 2015    perimeter: 296  compact: 43.48  elongation: 26.53       orientation: -0.64      mass center: (317.28, 258.85)
+photometric:    average: (25469.48, 30074.38, 37031.27) gray average: 29458.17  delta: (64920.00, 65124.00, 60742.00)   grey disp: 64239.49
+--------------------
+object id: 136
+geometric:      square: 114     perimeter: 36   compact: 11.37  elongation: 5.45        orientation: 0.60       mass center: (182.91, 234.62)
+photometric:    average: (18053.04, 22322.20, 29845.93) gray average: 21869.06  delta: (50984.00, 50305.00, 53942.00)   grey disp: 50359.03
+--------------------
+count of objects: 17
