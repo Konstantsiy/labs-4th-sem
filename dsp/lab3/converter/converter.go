@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+type Form struct {
+	BinaryMap [][]byte
+	Vector []byte
+}
+
 func BinMapToVector(bm [][]byte) []byte {
 	var v []byte
 	for i := 0; i < len(bm); i++ {

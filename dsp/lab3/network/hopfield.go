@@ -11,6 +11,10 @@ func NewHopfieldNN() *HopfieldNN {
 	return &HopfieldNN{}
 }
 
+func PrepareDataset(paths []string) {
+
+}
+
 func (nn *HopfieldNN) Learn(dataset [][]byte) {
 	nn.Dataset = dataset
 	var W [][]byte
@@ -26,11 +30,11 @@ func (nn *HopfieldNN) Learn(dataset [][]byte) {
 	nn.State = W0
 }
 
-func (nn *HopfieldNN) Check(v []byte) []byte {
+func (nn *HopfieldNN) Check(v []byte) bool {
 	for _, dV := range nn.Dataset {
 		if converter.CompareVectors(dV, v) {
-			return dV
+			return true
 		}
 	}
-	return nil
+	return false
 }
