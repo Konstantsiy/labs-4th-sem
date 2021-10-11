@@ -18,16 +18,15 @@ func main() {
 		fmt.Println("Please provide port number")
 		return
 	}
-
 	port := ":" + arguments[1]
-	l, err := net.Listen(Protocol, port)
+	server, err := net.Listen(Protocol, port)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	defer l.Close()
+	defer server.Close()
 
-	con, err := l.Accept()
+	con, err := server.Accept()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -58,7 +57,7 @@ func main() {
 			}
 		case "EXIT", "exit":
 			logrus.Info("Stop TCP server")
-			con.Write([]byte("the tcp connection was closed\n"))
+			con.Write([]byte("exit\n"))
 			return
 		default:
 			con.Write([]byte("unknown command, type 'help' to view the available commands\n"))
