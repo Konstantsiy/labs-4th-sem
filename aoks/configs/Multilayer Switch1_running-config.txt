@@ -1,0 +1,215 @@
+!
+version 12.2(37)SE1
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Root
+!
+!
+enable password cisco
+!
+!
+!
+!
+!
+ip routing
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+spanning-tree mode pvst
+spanning-tree vlan 1,13-16 priority 4096
+!
+!
+!
+!
+!
+!
+interface Port-channel1
+ switchport trunk native vlan 13
+ switchport trunk allowed vlan 13-16
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+!
+interface Port-channel2
+ switchport trunk native vlan 13
+ switchport trunk allowed vlan 13-16
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+!
+interface Port-channel3
+ switchport trunk native vlan 13
+ switchport trunk allowed vlan 13-16
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+!
+interface FastEthernet0/1
+ switchport trunk native vlan 13
+ switchport trunk allowed vlan 13-16
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 1 mode desirable
+ duplex full
+ speed 100
+!
+interface FastEthernet0/2
+ switchport trunk native vlan 13
+ switchport trunk allowed vlan 13-16
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 1 mode desirable
+ duplex full
+ speed 100
+!
+interface FastEthernet0/3
+ switchport trunk native vlan 13
+ switchport trunk allowed vlan 13-16
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 2 mode desirable
+ duplex full
+ speed 100
+!
+interface FastEthernet0/4
+ switchport trunk native vlan 13
+ switchport trunk allowed vlan 13-16
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 2 mode desirable
+ duplex full
+ speed 100
+!
+interface FastEthernet0/5
+ switchport trunk native vlan 13
+ switchport trunk allowed vlan 13-16
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 3 mode desirable
+ duplex full
+ speed 100
+!
+interface FastEthernet0/6
+ switchport trunk native vlan 13
+ switchport trunk allowed vlan 13-16
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 3 mode desirable
+ duplex full
+ speed 100
+!
+interface FastEthernet0/7
+ shutdown
+!
+interface FastEthernet0/8
+ shutdown
+!
+interface FastEthernet0/9
+ shutdown
+!
+interface FastEthernet0/10
+ shutdown
+!
+interface FastEthernet0/11
+ shutdown
+!
+interface FastEthernet0/12
+ shutdown
+!
+interface FastEthernet0/13
+ shutdown
+!
+interface FastEthernet0/14
+ shutdown
+!
+interface FastEthernet0/15
+ shutdown
+!
+interface FastEthernet0/16
+ shutdown
+!
+interface FastEthernet0/17
+ shutdown
+!
+interface FastEthernet0/18
+ shutdown
+!
+interface FastEthernet0/19
+ shutdown
+!
+interface FastEthernet0/20
+ shutdown
+!
+interface FastEthernet0/21
+ shutdown
+!
+interface FastEthernet0/22
+ shutdown
+!
+interface FastEthernet0/23
+ shutdown
+!
+interface FastEthernet0/24
+ shutdown
+!
+interface GigabitEthernet0/1
+ shutdown
+!
+interface GigabitEthernet0/2
+ shutdown
+!
+interface Vlan1
+ no ip address
+ shutdown
+!
+interface Vlan13
+ mac-address 0090.0c40.d901
+ ip address 141.189.128.1 255.255.128.0
+!
+interface Vlan14
+ mac-address 0090.0c40.d902
+ ip address 29.233.96.1 255.255.224.0
+!
+interface Vlan15
+ mac-address 0090.0c40.d903
+ ip address 37.55.128.1 255.255.128.0
+!
+interface Vlan16
+ mac-address 0090.0c40.d904
+ ip address 67.192.0.1 255.192.0.0
+!
+ip classless
+!
+ip flow-export version 9
+!
+!
+!
+!
+!
+!
+!
+!
+line con 0
+!
+line aux 0
+!
+line vty 0 4
+ password cisco
+ login
+!
+!
+!
+!
+end
+
